@@ -1,0 +1,2 @@
+-- Applied to project mlpqroimtfhuozmsgrtp (EDGAR-Sentiment)
+-- companies, filings, preload_status with public SELECT RLS
