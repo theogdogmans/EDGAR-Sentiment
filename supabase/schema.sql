@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS sector_stats (
   agreement_income DOUBLE PRECISION,
   agreement_revenue DOUBLE PRECISION,
   points JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- Phase 2 additive (optional): form-separated / Spearman / winsor / dual sector weighting.
+  -- Production UI continues to read legacy columns above until Phase 3.
+  stats_phase2 JSONB,
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -53,6 +56,8 @@ CREATE TABLE IF NOT EXISTS company_stats (
   agreement_revenue DOUBLE PRECISION,
   points JSONB NOT NULL DEFAULT '[]'::jsonb,
   featured BOOLEAN NOT NULL DEFAULT false,
+  -- Phase 2 additive (optional); raw filing YoY values remain inside points / local analyses.
+  stats_phase2 JSONB,
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 

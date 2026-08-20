@@ -15,6 +15,68 @@ from .compare.rollup import (
 
 _client = None
 
+# Keys published to live Supabase until Phase 3 adopts Phase 2 rankings.
+_COMPANY_SYNC_KEYS = {
+    "ticker",
+    "display",
+    "name",
+    "sector",
+    "cik",
+    "n_filings",
+    "mean_sentiment",
+    "r_income",
+    "p_income",
+    "n_income",
+    "r_revenue",
+    "p_revenue",
+    "n_revenue",
+    "agreement_income",
+    "agreement_revenue",
+    "points",
+    "featured",
+    "updated_at",
+}
+_SECTOR_SYNC_KEYS = {
+    "sector",
+    "n_companies",
+    "n_filings",
+    "mean_sentiment",
+    "r_income",
+    "p_income",
+    "n_income",
+    "r_revenue",
+    "p_revenue",
+    "n_revenue",
+    "agreement_income",
+    "agreement_revenue",
+    "points",
+    "updated_at",
+}
+
+
+def _production_company_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Legacy production fields only — does not publish Phase 2 rankings yet."""
+    out = {k: row[k] for k in _COMPANY_SYNC_KEYS if k in row}
+    # Compact points: drop optional levels that bloat free-tier JSON
+    slim_points = []
+    for p in out.get("points") or []:
+        slim_points.append(
+            {
+                "accession": p.get("accession"),
+                "form": p.get("form"),
+                "filed": p.get("filed"),
+                "sentiment": p.get("sentiment"),
+                "income_pct": p.get("income_pct"),
+                "revenue_pct": p.get("revenue_pct"),
+            }
+        )
+    out["points"] = slim_points
+    return out
+
+
+def _production_sector_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {k: row[k] for k in _SECTOR_SYNC_KEYS if k in row}
+
 
 def _supabase():
     global _client
@@ -110,8 +172,13 @@ def push_all(*, score_risk: bool = True) -> dict[str, int]:
     for s in sectors:
         s["updated_at"] = datetime.now(timezone.utc).isoformat()
 
-    n_companies = _upsert_chunks(client, "company_stats", companies)
-    n_sectors = _upsert_chunks(client, "sector_stats", sectors)
+    # Phase 2 must not replace production ranking fields yet. Sync only the
+    # legacy-shaped columns the live UI already reads (strip additive keys).
+    sync_companies = [_production_company_row(c) for c in companies]
+    sync_sectors = [_production_sector_row(s) for s in sectors]
+
+    n_companies = _upsert_chunks(client, "company_stats", sync_companies)
+    n_sectors = _upsert_chunks(client, "sector_stats", sync_sectors)
 
     examples: list[dict[str, Any]] = []
     for ticker, role in roles.items():

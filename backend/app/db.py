@@ -86,6 +86,19 @@ def init_db() -> None:
                 name TEXT NOT NULL,
                 sector TEXT
             );
+
+            -- Phase 2 statistical snapshots (never mutate analyses.metrics_json).
+            CREATE TABLE IF NOT EXISTS phase2_company_stats (
+                ticker TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                computed_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS phase2_sector_stats (
+                sector TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                computed_at TEXT NOT NULL
+            );
             """
         )
         # Migrate older mda tables that lack extraction metadata columns.
@@ -355,3 +368,22 @@ def analysis_to_dict(row: sqlite3.Row) -> dict[str, Any]:
         },
         "sentences": json.loads(row["sentences_json"]),
     }
+
+
+def save_phase2_company_stats(rows: list[dict[str, Any]], computed_at: str) -> None:
+    """Persist Phase 2 company payloads without touching raw analyses."""
+    with get_db() as conn:
+        conn.execute("DELETE FROM phase2_company_stats")
+        conn.executemany(
+            "INSERT INTO phase2_company_stats(ticker, payload_json, computed_at) VALUES(?,?,?)",
+            [(r["ticker"], json.dumps(r), computed_at) for r in rows],
+        )
+
+
+def save_phase2_sector_stats(rows: list[dict[str, Any]], computed_at: str) -> None:
+    with get_db() as conn:
+        conn.execute("DELETE FROM phase2_sector_stats")
+        conn.executemany(
+            "INSERT INTO phase2_sector_stats(sector, payload_json, computed_at) VALUES(?,?,?)",
+            [(r["sector"], json.dumps(r), computed_at) for r in rows],
+        )
