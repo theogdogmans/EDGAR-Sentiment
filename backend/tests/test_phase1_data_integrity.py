@@ -67,6 +67,20 @@ SAMPLE_10Q_HTML = """
 </body></html>
 """
 
+# Modern filings often wrap Item headings in <table>; stripping tables first must not
+# erase the MD&A start anchor.
+SAMPLE_10Q_HEADING_IN_TABLE = """
+<html><body>
+<table><tr><td>ITEM 2.</td></tr>
+<tr><td>Management's Discussion and Analysis of Financial Condition and Results of Operations</td></tr></table>
+<p>Quarterly revenue increased versus the prior-year quarter on higher unit volumes and average selling prices.</p>
+<p>Operating income improved as operating expenses remained tightly controlled in the period.</p>
+<table><tr><td>ITEM 3.</td></tr>
+<tr><td>Quantitative and Qualitative Disclosures About Market Risk</td></tr></table>
+<p>Foreign currency exposures are hedged in the ordinary course of business.</p>
+</body></html>
+"""
+
 
 def test_10k_mda_stops_before_item_7a():
     result = extract_from_html(SAMPLE_10K_HTML, "10-K")
@@ -94,6 +108,15 @@ def test_10q_mda_ends_at_item3_quantitative():
     result = extract_from_html(SAMPLE_10Q_HTML, "10-Q")
     assert "quarterly revenue increased" in result["text"].lower()
     assert "foreign currency exposures are hedged" not in result["text"].lower()
+
+
+def test_10q_heading_inside_table_still_extracts():
+    result = extract_from_html(SAMPLE_10Q_HEADING_IN_TABLE, "10-Q")
+    text = result["text"].lower()
+    assert "quarterly revenue increased" in text
+    assert "foreign currency exposures are hedged" not in text
+    assert result["status"] == "ok"
+    assert result["char_count"] >= 200
 
 
 def test_10q_selects_quarterly_not_ytd():

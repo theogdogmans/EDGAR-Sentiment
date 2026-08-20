@@ -153,40 +153,75 @@ def filing_archive_url(cik: str, accession: str, primary_doc: str) -> str:
 def list_recent_filings(
     ticker: str, limit: int = MAX_FILINGS, force: bool = False
 ) -> list[dict[str, Any]]:
+    """Return up to ``limit`` recent 10-K/10-Q filings for a ticker.
+
+    Uses SEC submissions ``recent`` first, then older ``filings.files`` archives
+    when more history is needed. Cache refreshes when force=True or when the
+    cached row count is below the requested limit.
+    """
     company = resolve_ticker(ticker)
     if not force:
         cached = db.list_filings(company["ticker"])
-        if cached:
+        if len(cached) >= limit:
             return [dict(row) for row in cached][:limit]
-    data = fetch_json(submissions_url(company["cik"]), _data_headers())
-    recent = data.get("filings", {}).get("recent", {})
-    forms = recent.get("form", [])
-    rows: list[dict[str, Any]] = []
-    for i, form in enumerate(forms):
-        if form not in ("10-K", "10-Q"):
-            continue
-        accession = recent["accessionNumber"][i]
-        primary_doc = recent.get("primaryDocument", [""])[i]
-        filed = recent.get("filingDate", [""])[i]
-        report_date = recent.get("reportDate", [""])[i]
-        url = filing_archive_url(company["cik"], accession, primary_doc)
-        rows.append(
-            {
-                "accession": accession,
-                "ticker": company["ticker"],
-                "cik": company["cik"],
-                "form": form,
-                "filed": filed,
-                "report_date": report_date,
-                "primary_doc": primary_doc,
-                "filing_url": url,
-            }
-        )
-        if len(rows) >= limit:
-            break
-    db.upsert_company(company["ticker"], company["cik"], data.get("name", company["name"]))
+
+    rows = _collect_10k_10q(company, limit)
+    db.upsert_company(company["ticker"], company["cik"], company.get("name") or ticker)
     db.upsert_filings(rows)
-    return rows
+    return rows[:limit]
+
+
+def _collect_10k_10q(company: dict[str, Any], limit: int) -> list[dict[str, Any]]:
+    data = fetch_json(submissions_url(company["cik"]), _data_headers())
+    company = {**company, "name": data.get("name") or company.get("name") or company["ticker"]}
+    seen: set[str] = set()
+    rows: list[dict[str, Any]] = []
+
+    def ingest(block: dict[str, Any]) -> None:
+        forms = block.get("form", []) or []
+        for i, form in enumerate(forms):
+            if form not in ("10-K", "10-Q"):
+                continue
+            accession = block["accessionNumber"][i]
+            if accession in seen:
+                continue
+            primary_doc = (block.get("primaryDocument") or [""])[i]
+            filed = (block.get("filingDate") or [""])[i]
+            report_date = (block.get("reportDate") or [""])[i]
+            url = filing_archive_url(company["cik"], accession, primary_doc)
+            seen.add(accession)
+            rows.append(
+                {
+                    "accession": accession,
+                    "ticker": company["ticker"],
+                    "cik": company["cik"],
+                    "form": form,
+                    "filed": filed,
+                    "report_date": report_date,
+                    "primary_doc": primary_doc,
+                    "filing_url": url,
+                }
+            )
+            if len(rows) >= limit:
+                return
+
+    ingest(data.get("filings", {}).get("recent", {}) or {})
+    if len(rows) < limit:
+        for meta in data.get("filings", {}).get("files", []) or []:
+            name = meta.get("name")
+            if not name:
+                continue
+            shard_url = f"{SEC_BASE}/submissions/{name}"
+            try:
+                shard = fetch_json(shard_url, _data_headers())
+            except Exception:
+                continue
+            ingest(shard)
+            if len(rows) >= limit:
+                break
+
+    rows.sort(key=lambda r: r.get("filed") or "", reverse=True)
+    return rows[:limit]
 
 
 def load_company_facts(cik: str, force: bool = False) -> dict[str, Any]:

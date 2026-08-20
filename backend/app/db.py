@@ -99,6 +99,39 @@ def init_db() -> None:
                 payload_json TEXT NOT NULL,
                 computed_at TEXT NOT NULL
             );
+
+            -- Phase 3: one row per attempted filing (success or failure).
+            CREATE TABLE IF NOT EXISTS quality_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticker TEXT NOT NULL,
+                accession TEXT NOT NULL,
+                form TEXT,
+                filed TEXT,
+                report_date TEXT,
+                extraction_ok INTEGER,
+                extraction_source TEXT,
+                mda_chars INTEGER,
+                start_heading TEXT,
+                end_heading TEXT,
+                extraction_status TEXT,
+                extraction_confidence TEXT,
+                sentence_count INTEGER,
+                sentiment_score REAL,
+                revenue_status TEXT,
+                revenue_tag TEXT,
+                revenue_duration REAL,
+                revenue_yoy REAL,
+                ni_status TEXT,
+                ni_tag TEXT,
+                ni_duration REAL,
+                ni_yoy REAL,
+                failure_reason TEXT,
+                flags_json TEXT,
+                created_at TEXT NOT NULL,
+                UNIQUE(accession)
+            );
+
+            CREATE INDEX IF NOT EXISTS quality_log_ticker_idx ON quality_log(ticker);
             """
         )
         # Migrate older mda tables that lack extraction metadata columns.
@@ -111,6 +144,60 @@ def init_db() -> None:
         ):
             if col not in cols:
                 conn.execute(f"ALTER TABLE mda ADD COLUMN {col} {decl}")
+
+        # Ensure quality_log exists on DBs created before Phase 3.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS quality_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticker TEXT NOT NULL,
+                accession TEXT NOT NULL,
+                form TEXT,
+                filed TEXT,
+                report_date TEXT,
+                extraction_ok INTEGER,
+                extraction_source TEXT,
+                mda_chars INTEGER,
+                start_heading TEXT,
+                end_heading TEXT,
+                extraction_status TEXT,
+                extraction_confidence TEXT,
+                sentence_count INTEGER,
+                sentiment_score REAL,
+                revenue_status TEXT,
+                revenue_tag TEXT,
+                revenue_duration REAL,
+                revenue_yoy REAL,
+                ni_status TEXT,
+                ni_tag TEXT,
+                ni_duration REAL,
+                ni_yoy REAL,
+                failure_reason TEXT,
+                flags_json TEXT,
+                created_at TEXT NOT NULL,
+                UNIQUE(accession)
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS quality_log_ticker_idx ON quality_log(ticker)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS phase2_company_stats (
+                ticker TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                computed_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS phase2_sector_stats (
+                sector TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                computed_at TEXT NOT NULL
+            )
+            """
+        )
 
 
 def meta_get(key: str) -> Optional[str]:
@@ -387,3 +474,73 @@ def save_phase2_sector_stats(rows: list[dict[str, Any]], computed_at: str) -> No
             "INSERT INTO phase2_sector_stats(sector, payload_json, computed_at) VALUES(?,?,?)",
             [(r["sector"], json.dumps(r), computed_at) for r in rows],
         )
+
+
+def upsert_quality_log(row: dict[str, Any]) -> None:
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO quality_log(
+                ticker, accession, form, filed, report_date,
+                extraction_ok, extraction_source, mda_chars, start_heading, end_heading,
+                extraction_status, extraction_confidence, sentence_count, sentiment_score,
+                revenue_status, revenue_tag, revenue_duration, revenue_yoy,
+                ni_status, ni_tag, ni_duration, ni_yoy,
+                failure_reason, flags_json, created_at
+            ) VALUES (
+                :ticker, :accession, :form, :filed, :report_date,
+                :extraction_ok, :extraction_source, :mda_chars, :start_heading, :end_heading,
+                :extraction_status, :extraction_confidence, :sentence_count, :sentiment_score,
+                :revenue_status, :revenue_tag, :revenue_duration, :revenue_yoy,
+                :ni_status, :ni_tag, :ni_duration, :ni_yoy,
+                :failure_reason, :flags_json, :created_at
+            )
+            ON CONFLICT(accession) DO UPDATE SET
+                ticker=excluded.ticker,
+                form=excluded.form,
+                filed=excluded.filed,
+                report_date=excluded.report_date,
+                extraction_ok=excluded.extraction_ok,
+                extraction_source=excluded.extraction_source,
+                mda_chars=excluded.mda_chars,
+                start_heading=excluded.start_heading,
+                end_heading=excluded.end_heading,
+                extraction_status=excluded.extraction_status,
+                extraction_confidence=excluded.extraction_confidence,
+                sentence_count=excluded.sentence_count,
+                sentiment_score=excluded.sentiment_score,
+                revenue_status=excluded.revenue_status,
+                revenue_tag=excluded.revenue_tag,
+                revenue_duration=excluded.revenue_duration,
+                revenue_yoy=excluded.revenue_yoy,
+                ni_status=excluded.ni_status,
+                ni_tag=excluded.ni_tag,
+                ni_duration=excluded.ni_duration,
+                ni_yoy=excluded.ni_yoy,
+                failure_reason=excluded.failure_reason,
+                flags_json=excluded.flags_json,
+                created_at=excluded.created_at
+            """,
+            row,
+        )
+
+
+def list_quality_logs() -> list[sqlite3.Row]:
+    with get_db() as conn:
+        return conn.execute("SELECT * FROM quality_log ORDER BY ticker, filed DESC").fetchall()
+
+
+def quality_log_counts() -> dict[str, int]:
+    with get_db() as conn:
+        total = conn.execute("SELECT COUNT(*) AS n FROM quality_log").fetchone()["n"]
+        ok = conn.execute(
+            "SELECT COUNT(*) AS n FROM quality_log WHERE extraction_ok = 1 AND sentiment_score IS NOT NULL"
+        ).fetchone()["n"]
+        rev = conn.execute(
+            "SELECT COUNT(*) AS n FROM quality_log WHERE revenue_status = 'ok'"
+        ).fetchone()["n"]
+        ni = conn.execute(
+            "SELECT COUNT(*) AS n FROM quality_log WHERE ni_status = 'ok'"
+        ).fetchone()["n"]
+    return {"attempted": int(total), "scored": int(ok), "revenue_ok": int(rev), "ni_ok": int(ni)}
+

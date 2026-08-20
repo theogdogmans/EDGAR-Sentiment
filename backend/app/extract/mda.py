@@ -121,10 +121,18 @@ def _pick_end(text: str, start: int, end_res: list[re.Pattern[str]]) -> tuple[in
 
 
 def extract_from_html(html: str, form: str) -> dict[str, Any]:
-    text = _visible_text(html, strip_tables=True)
+    """Extract MD&A text from filing HTML.
+
+    Boundary detection uses text *with tables retained*, because many modern
+    SEC filings put Item headings inside ``<table>`` wrappers. Tables are then
+    stripped from the sliced MD&A body before NLP.
+    """
+    text_bounds = _visible_text(html, strip_tables=False)
+    text_nlp = _visible_text(html, strip_tables=True)
+
     if form.startswith("10-K"):
-        starts = _find_starts(text, ITEM7)
-        start = _pick_start(text, starts)
+        starts = _find_starts(text_bounds, ITEM7)
+        start = _pick_start(text_bounds, starts)
         if start is None:
             return {
                 "text": "",
@@ -133,11 +141,9 @@ def extract_from_html(html: str, form: str) -> dict[str, Any]:
                 "end_heading": "",
                 "status": "no_start_heading",
             }
-        # End at Item 7A if present, else Item 8
-        end, end_heading = _pick_end(text, start, [ITEM7A, ITEM8])
-        start_heading = _line_at(text, start)
-        chunk = text[start:end].strip()
-        # Guard: if 7A heading appears after the MD&A opening, trim there
+        end, end_heading = _pick_end(text_bounds, start, [ITEM7A, ITEM8])
+        start_heading = _line_at(text_bounds, start)
+        chunk = _slice_for_nlp(text_bounds, text_nlp, start, end, start_heading, end_heading)
         for m in ITEM7A.finditer(chunk):
             if m.start() > 80:
                 end_heading = _line_at(chunk, m.start()) or end_heading
@@ -153,8 +159,8 @@ def extract_from_html(html: str, form: str) -> dict[str, Any]:
         }
 
     # 10-Q
-    starts = _find_starts(text, ITEM2)
-    start = _pick_start(text, starts)
+    starts = _find_starts(text_bounds, ITEM2)
+    start = _pick_start(text_bounds, starts)
     if start is None:
         return {
             "text": "",
@@ -163,9 +169,9 @@ def extract_from_html(html: str, form: str) -> dict[str, Any]:
             "end_heading": "",
             "status": "no_start_heading",
         }
-    end, end_heading = _pick_end(text, start, [ITEM3_Q])
-    start_heading = _line_at(text, start)
-    chunk = text[start:end].strip()
+    end, end_heading = _pick_end(text_bounds, start, [ITEM3_Q])
+    start_heading = _line_at(text_bounds, start)
+    chunk = _slice_for_nlp(text_bounds, text_nlp, start, end, start_heading, end_heading)
     status = "ok" if len(chunk) >= 200 else "too_short"
     return {
         "text": chunk,
@@ -174,6 +180,58 @@ def extract_from_html(html: str, form: str) -> dict[str, Any]:
         "end_heading": end_heading,
         "status": status,
     }
+
+
+def _norm_heading(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").lower()).strip()[:80]
+
+
+def _slice_for_nlp(
+    text_bounds: str,
+    text_nlp: str,
+    start: int,
+    end: int,
+    start_heading: str,
+    end_heading: str,
+) -> str:
+    """Prefer table-stripped body when headings still resolve; else drop table-only lines."""
+    sh = _norm_heading(start_heading)
+    eh = _norm_heading(end_heading)
+    if sh:
+        idx = text_nlp.lower().find(sh[:40]) if len(sh) >= 8 else -1
+        if idx < 0:
+            m = re.search(r"item\s*7a?\b|item\s*2\b", sh)
+            if m:
+                idx = text_nlp.lower().find(m.group(0))
+        if idx >= 0:
+            end_idx = len(text_nlp)
+            if eh:
+                j = text_nlp.lower().find(eh[:40], idx + 20)
+                if j > idx:
+                    end_idx = j
+            chunk = text_nlp[idx:end_idx].strip()
+            if len(chunk) >= 200:
+                return chunk
+    raw = text_bounds[start:end].strip()
+    nlp_lines = set(text_nlp.splitlines())
+    kept: list[str] = []
+    for line in raw.splitlines():
+        if line in nlp_lines:
+            kept.append(line)
+            continue
+        # Keep narrative headings that only survived in the bounds pass
+        if HEADING_LINE.match(line) or "discussion" in line.lower():
+            kept.append(line)
+            continue
+        letters = sum(ch.isalpha() for ch in line)
+        digits = sum(ch.isdigit() for ch in line)
+        if letters == 0 and digits > 0:
+            continue
+        if digits > letters * 3 and letters < 20:
+            continue
+        # Table-only prose (present in bounds, absent from stripped) → drop
+        continue
+    return "\n".join(kept).strip()
 
 
 def extract_with_edgartools(filing: dict[str, Any]) -> dict[str, Any]:
