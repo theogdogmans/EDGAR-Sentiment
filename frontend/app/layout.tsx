@@ -15,7 +15,8 @@ const serif = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: "edgar-sentiment",
-  description: "Compare MD&A sentiment in SEC filings with the numbers in the statements.",
+  description:
+    "Does MD&A tone in S&P 500 SEC filings match the numbers? Industry and company correlation explainer.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link className="wordmark" href="/">
               edgar-<span>sentiment</span>
             </Link>
-            <div className="kicker">S&amp;P 500 · live cache</div>
+            <nav className="nav">
+              <Link href="/">Rankings</Link>
+              <Link href="/methodology">Methodology</Link>
+            </nav>
           </header>
           {children}
         </div>

@@ -38,9 +38,45 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 16px;
   border-bottom: 2px solid var(--ink);
   padding-bottom: 12px;
   margin-bottom: 28px;
+}
+
+.nav {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.nav a:hover {
+  color: var(--navy);
+}
+
+.rank-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.prose-list {
+  color: var(--muted);
+  line-height: 1.55;
+  padding-left: 1.2em;
+}
+
+.prose-list li {
+  margin-bottom: 8px;
+}
+
+.panel code {
+  font-size: 0.92em;
+  background: var(--paper-2);
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
 }
 
 .wordmark {
@@ -266,7 +302,9 @@ td {
 
 @media (max-width: 800px) {
   .stats, .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .rank-grid { grid-template-columns: 1fr; }
   .hero h1 { font-size: 36px; }
+  .masthead { flex-wrap: wrap; }
 }
 
 @media (max-width: 560px) {

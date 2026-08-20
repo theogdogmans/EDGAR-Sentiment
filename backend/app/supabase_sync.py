@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-import json
 import os
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 from . import db
+from .compare.rollup import (
+    build_company_stats,
+    build_sector_stats,
+    example_filing_payload,
+    latest_analyzed_accession,
+    pick_featured_tickers,
+)
 
 _client = None
 
@@ -28,53 +34,6 @@ def enabled() -> bool:
     return _supabase() is not None
 
 
-def upsert_company(row: dict[str, Any]) -> None:
-    client = _supabase()
-    if client is None:
-        return
-    client.table("companies").upsert(
-        {
-            "ticker": row["ticker"],
-            "display": row.get("display") or row["ticker"],
-            "name": row["name"],
-            "sector": row.get("sector"),
-            "cik": row.get("cik"),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        },
-        on_conflict="ticker",
-    ).execute()
-
-
-def upsert_filing(filing: dict[str, Any], analysis: Optional[dict[str, Any]] = None) -> None:
-    client = _supabase()
-    if client is None:
-        return
-    payload: dict[str, Any] = {
-        "accession": filing["accession"],
-        "ticker": filing["ticker"],
-        "form": filing["form"],
-        "filed": filing.get("filed"),
-        "report_date": filing.get("report_date"),
-        "filing_url": filing.get("filing_url"),
-    }
-    if analysis:
-        sent = analysis.get("sentiment") or {}
-        payload.update(
-            {
-                "sentiment_score": sent.get("score"),
-                "positive_share": sent.get("positive_share"),
-                "negative_share": sent.get("negative_share"),
-                "neutral_share": sent.get("neutral_share"),
-                "sentence_count": sent.get("sentence_count"),
-                "metrics": analysis.get("metrics"),
-                "agreement": analysis.get("agreement"),
-                "sentences": analysis.get("sentences"),
-                "analyzed_at": datetime.now(timezone.utc).isoformat(),
-            }
-        )
-    client.table("filings").upsert(payload, on_conflict="accession").execute()
-
-
 def set_preload_status(status: dict[str, Any]) -> None:
     client = _supabase()
     if client is None:
@@ -93,65 +52,120 @@ def set_preload_status(status: dict[str, Any]) -> None:
     ).execute()
 
 
-def push_all() -> dict[str, int]:
+def _score_risk_for_filing(accession: str) -> Optional[dict[str, Any]]:
+    """Cheap bias demo: score Item 1A only when we need an example filing."""
+    filing_row = db.get_filing(accession)
+    if filing_row is None:
+        return None
+    filing = dict(filing_row)
+    if not str(filing.get("form", "")).startswith("10-K"):
+        # Prefer a 10-K for the same ticker when available
+        for row in db.list_filings(filing["ticker"]):
+            if str(row["form"]).startswith("10-K") and db.get_analysis(row["accession"]):
+                filing = dict(row)
+                accession = filing["accession"]
+                break
+        else:
+            return None
+    try:
+        from .extract.risk import extract_risk_factors
+        from .nlp.finbert import analyze_text
+
+        text, _source = extract_risk_factors(filing)
+        return analyze_text(text)
+    except Exception:
+        return None
+
+
+def _upsert_chunks(client: Any, table: str, rows: list[dict[str, Any]], size: int = 100) -> int:
+    if not rows:
+        return 0
+    for i in range(0, len(rows), size):
+        client.table(table).upsert(rows[i : i + size]).execute()
+    return len(rows)
+
+
+def push_all(*, score_risk: bool = True) -> dict[str, int]:
+    """Publish slim aggregates + a few example filings. Never dump full S&P sentence JSON."""
     client = _supabase()
     if client is None:
         raise RuntimeError("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to sync.")
 
-    companies = []
-    for row in db.list_sp500():
-        companies.append(
-            {
-                "ticker": row["ticker"],
-                "display": row["display"] or row["ticker"],
-                "name": row["name"],
-                "sector": row["sector"],
-                "cik": row["cik"],
-            }
-        )
-    for i in range(0, len(companies), 200):
-        client.table("companies").upsert(companies[i : i + 200], on_conflict="ticker").execute()
-
-    filings = [dict(r) for r in db.list_all_filings()]
-    pushed = 0
-    for i in range(0, len(filings), 100):
-        chunk = []
-        for f in filings[i : i + 100]:
-            analysis = db.get_analysis(f["accession"])
-            item = {
-                "accession": f["accession"],
-                "ticker": f["ticker"],
-                "form": f["form"],
-                "filed": f["filed"],
-                "report_date": f["report_date"],
-                "filing_url": f["filing_url"],
-            }
-            if analysis:
-                parsed = db.analysis_to_dict(analysis)
-                sent = parsed["sentiment"]
-                item.update(
-                    {
-                        "sentiment_score": sent["score"],
-                        "positive_share": sent["positive_share"],
-                        "negative_share": sent["negative_share"],
-                        "neutral_share": sent["neutral_share"],
-                        "sentence_count": sent["sentence_count"],
-                        "metrics": parsed["metrics"],
-                        "agreement": parsed["agreement"],
-                        "sentences": parsed["sentences"],
-                        "analyzed_at": datetime.now(timezone.utc).isoformat(),
-                    }
-                )
-            chunk.append(item)
-        client.table("filings").upsert(chunk, on_conflict="accession").execute()
-        pushed += len(chunk)
-
     set_preload_status(
         {
             "running": True,
-            "stage": "sync",
-            "message": "Cached filings synced to Supabase",
+            "stage": "rollup",
+            "message": "Building industry / company aggregates",
             "coverage": db.coverage(),
         }
     )
-    return {"companies": len(companies), "filings": pushed}
+
+    companies = build_company_stats()
+    roles = pick_featured_tickers(companies)
+    for c in companies:
+        c["featured"] = c["ticker"] in roles
+        c["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    sectors = build_sector_stats(companies)
+    for s in sectors:
+        s["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    n_companies = _upsert_chunks(client, "company_stats", companies)
+    n_sectors = _upsert_chunks(client, "sector_stats", sectors)
+
+    examples: list[dict[str, Any]] = []
+    for ticker, role in roles.items():
+        want_risk = score_risk and role in ("bias_demo", "highest_r", "lowest_r", "typical")
+        accession = latest_analyzed_accession(ticker, prefer_10k=want_risk)
+        if not accession:
+            continue
+        risk = None
+        if want_risk:
+            set_preload_status(
+                {
+                    "running": True,
+                    "stage": "bias_demo",
+                    "current": ticker,
+                    "message": f"Scoring Item 1A bias demo for {ticker}",
+                    "coverage": db.coverage(),
+                }
+            )
+            risk = _score_risk_for_filing(accession)
+        try:
+            examples.append(example_filing_payload(accession, role, risk=risk))
+        except KeyError:
+            continue
+
+    for ex in examples:
+        ex["analyzed_at"] = datetime.now(timezone.utc).isoformat()
+        ex["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Replace example set so old heavy rows do not linger
+    client.table("example_filings").delete().not("accession", "is", null).execute()
+    n_examples = _upsert_chunks(client, "example_filings", examples, size=20) if examples else 0
+
+    set_preload_status(
+        {
+            "running": False,
+            "stage": "done",
+            "message": (
+                f"Synced {n_sectors} sectors, {n_companies} companies, "
+                f"{n_examples} example filings"
+            ),
+            "coverage": db.coverage(),
+        }
+    )
+    return {
+        "sectors": n_sectors,
+        "companies": n_companies,
+        "example_filings": n_examples,
+    }
+
+
+# Back-compat no-ops: pipeline used to upsert every filing; industry-first path does not.
+def upsert_company(_row: dict[str, Any]) -> None:
+    return None
+
+
+def upsert_filing(_filing: dict[str, Any], _analysis: Optional[dict[str, Any]] = None) -> None:
+    return None

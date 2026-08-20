@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fmtMoney, fmtPct, fmtScore, toneClass } from "@/lib/format";
 import { createSupabaseClient } from "@/lib/supabase";
+import type { ExampleFiling } from "@/lib/types";
 
-export const revalidate = 30;
+export const revalidate = 3600;
 
 type Metric = {
   value?: number;
@@ -20,76 +21,144 @@ export default async function FilingPage({
   const { ticker: rawTicker, accession } = await params;
   const ticker = rawTicker.toUpperCase();
   const supabase = createSupabaseClient();
-  const { data: filing } = await supabase.from("filings").select("*").eq("accession", accession).maybeSingle();
-  if (!filing) notFound();
+  const { data: filing } = await supabase
+    .from("example_filings")
+    .select("*")
+    .eq("accession", accession)
+    .maybeSingle();
+  if (!filing || filing.ticker !== ticker) notFound();
+  const row = filing as ExampleFiling;
 
-  const sentences = (filing.sentences as { text: string; label: string; score: number }[] | null) ?? [];
+  const sentences = row.sentences ?? [];
+  const riskSentences = row.risk_sentences ?? [];
   const metrics = [
-    ["Revenue", filing.metrics?.revenue as Metric],
-    ["Net income", filing.metrics?.net_income as Metric],
-    ["Operating income", filing.metrics?.operating_income as Metric],
-    ["Diluted EPS", filing.metrics?.eps as Metric],
+    ["Revenue", row.metrics?.revenue as Metric],
+    ["Net income", row.metrics?.net_income as Metric],
+    ["Operating income", row.metrics?.operating_income as Metric],
+    ["Diluted EPS", row.metrics?.eps as Metric],
   ] as const;
 
   return (
-    <main>
+    <>
       <p className="back">
         <Link href={`/company/${ticker}`}>← {ticker}</Link>
       </p>
-      <div className="kicker">{filing.form} · {accession}</div>
-      <h1>
-        {filing.form} filed {filing.filed}
-      </h1>
-      <section className="stats">
+      <section className="hero">
+        <div className="kicker">
+          {row.form} · {accession}
+          {row.role ? ` · ${row.role.replace(/_/g, " ")}` : ""}
+        </div>
+        <h1>
+          {row.form} filed {row.filed}
+        </h1>
+        <p className="lede">
+          Featured example filing. Sentence highlights are stored only for a small case-study set.
+        </p>
+      </section>
+
+      <div className="stats">
         <div className="stat">
-          <div className="label">MD&A sentiment</div>
-          <div className={`value ${toneClass(filing.sentiment_score)}`}>{fmtScore(filing.sentiment_score)}</div>
+          <div className="label">MD&amp;A sentiment</div>
+          <div className={`value ${toneClass(row.sentiment_score)}`}>
+            {fmtScore(row.sentiment_score)}
+          </div>
         </div>
         <div className="stat">
           <div className="label">Positive / negative</div>
-          <div className="value">
-            {fmtPct(filing.positive_share)} / {fmtPct(filing.negative_share)}
+          <div className="value" style={{ fontSize: 22 }}>
+            {fmtPct(row.positive_share)} / {fmtPct(row.negative_share)}
           </div>
         </div>
         <div className="stat">
           <div className="label">Sentences scored</div>
-          <div className="value">{filing.sentence_count ?? "—"}</div>
+          <div className="value">{row.sentence_count ?? "—"}</div>
         </div>
         <div className="stat">
           <div className="label">Income agreement</div>
           <div className="value">
-            {filing.agreement?.net_income == null ? "—" : filing.agreement.net_income ? "Yes" : "No"}
+            {row.agreement?.net_income == null
+              ? "—"
+              : row.agreement.net_income
+                ? "Yes"
+                : "No"}
           </div>
         </div>
-      </section>
-      <section className="metrics-grid">
+      </div>
+
+      {row.risk_sentiment_score != null ? (
+        <div className="panel">
+          <h2>Section bias: MD&amp;A vs Item 1A</h2>
+          <p className="hint">
+            Risk Factors are legally conservative. Expect a more negative FinBERT score than MD&amp;A
+            on the same 10-K.
+          </p>
+          <div className="stats">
+            <div className="stat">
+              <div className="label">MD&amp;A</div>
+              <div className={`value ${toneClass(row.sentiment_score)}`}>
+                {fmtScore(row.sentiment_score)}
+              </div>
+            </div>
+            <div className="stat">
+              <div className="label">Item 1A Risk Factors</div>
+              <div className={`value ${toneClass(row.risk_sentiment_score)}`}>
+                {fmtScore(row.risk_sentiment_score)}
+              </div>
+            </div>
+            <div className="stat">
+              <div className="label">Gap (MD&amp;A − 1A)</div>
+              <div
+                className={`value ${toneClass(
+                  row.sentiment_score != null
+                    ? row.sentiment_score - row.risk_sentiment_score
+                    : null
+                )}`}
+              >
+                {fmtScore(
+                  row.sentiment_score != null
+                    ? row.sentiment_score - row.risk_sentiment_score
+                    : null
+                )}
+              </div>
+            </div>
+            <div className="stat">
+              <div className="label">1A sentences</div>
+              <div className="value">{row.risk_sentence_count ?? "—"}</div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="metrics-grid">
         {metrics.map(([label, metric]) => (
           <div className="metric-card" key={label}>
-            <div className="kicker">{label}</div>
-            <div className="value" style={{ fontSize: 24, fontFamily: "var(--font-serif), Georgia, serif" }}>
+            <div className="label">{label}</div>
+            <div className="value" style={{ fontSize: 22, marginTop: 4 }}>
               {fmtMoney(metric?.value, metric?.unit)}
             </div>
-            <div className={toneClass(metric?.pct_change)}>
+            <div className={`muted ${toneClass(metric?.pct_change)}`}>
               {fmtPct(metric?.pct_change)} vs prior {metric?.fp || "period"}
             </div>
           </div>
         ))}
-      </section>
-      <p className="note">
-        {filing.filing_url ? (
-          <a href={filing.filing_url} target="_blank" rel="noreferrer">
+      </div>
+
+      {row.filing_url ? (
+        <p className="note">
+          <a href={row.filing_url} target="_blank" rel="noreferrer">
             Open original filing on EDGAR
           </a>
-        ) : null}
-      </p>
-      <section className="panel">
-        <h2>MD&A sentences</h2>
-        <p className="hint">Green is FinBERT-positive, red is negative. Neutral stays on the paper rule.</p>
-        {sentences.length === 0 ? (
-          <p className="muted">Sentence-level scores have not synced for this filing yet.</p>
+        </p>
+      ) : null}
+
+      <div className="panel">
+        <h2>MD&amp;A sentences</h2>
+        <p className="hint">Green is FinBERT-positive, red is negative.</p>
+        {!sentences.length ? (
+          <p className="muted">No sentence highlights for this example.</p>
         ) : (
           sentences.map((s, i) => (
-            <div className={`sentence ${s.label}`} key={`${i}-${s.text.slice(0, 24)}`}>
+            <div className={`sentence ${s.label}`} key={i}>
               <div className="meta">
                 {s.label} · {fmtScore(s.score)}
               </div>
@@ -97,7 +166,22 @@ export default async function FilingPage({
             </div>
           ))
         )}
-      </section>
-    </main>
+      </div>
+
+      {riskSentences.length ? (
+        <div className="panel">
+          <h2>Item 1A sentences</h2>
+          <p className="hint">Same model, different section — usually more negative.</p>
+          {riskSentences.map((s, i) => (
+            <div className={`sentence ${s.label}`} key={i}>
+              <div className="meta">
+                {s.label} · {fmtScore(s.score)}
+              </div>
+              {s.text}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
