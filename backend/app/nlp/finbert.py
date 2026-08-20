@@ -16,6 +16,16 @@ SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 LABELS = ("positive", "negative", "neutral")
 
 
+def _device():
+    import torch
+
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
 def _load():
     global _tokenizer, _model
     if _model is not None:
@@ -24,6 +34,7 @@ def _load():
 
     _tokenizer = AutoTokenizer.from_pretrained(FINBERT_MODEL)
     _model = AutoModelForSequenceClassification.from_pretrained(FINBERT_MODEL)
+    _model.to(_device())
     _model.eval()
     return _tokenizer, _model
 
@@ -62,6 +73,7 @@ def score_sentences(sentences: list[str], batch_size: int = 24) -> list[dict[str
         id2label = {0: "positive", 1: "negative", 2: "neutral"}
 
     with _lock:
+        device = next(model.parameters()).device
         for i in range(0, len(sentences), batch_size):
             batch = sentences[i : i + batch_size]
             encoded = tokenizer(
@@ -71,6 +83,7 @@ def score_sentences(sentences: list[str], batch_size: int = 24) -> list[dict[str
                 max_length=256,
                 return_tensors="pt",
             )
+            encoded = {k: v.to(device) for k, v in encoded.items()}
             with torch.no_grad():
                 logits = model(**encoded).logits
                 probs = F.softmax(logits, dim=-1).cpu().numpy()

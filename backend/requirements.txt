@@ -10,3 +10,7 @@ scipy>=1.13.0
 edgartools>=3.0.0
 supabase>=2.9.0
 pytest>=8.0.0
+
+# Install torch separately for your platform:
+#   CPU:  pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   CUDA (Windows NVIDIA): pip install torch --index-url https://download.pytorch.org/whl/cu124

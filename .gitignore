@@ -4,21 +4,35 @@ __pycache__/
 .env
 .env.local
 frontend/.env.local
-backend/data/*
-!backend/data/.gitkeep
-tmp_sync*
-tmp_co_*
-_build_sync_sql.py
-_print_aapl.py
+frontend/.env.production
 node_modules/
 .next/
 tsconfig.tsbuildinfo
 out/
-*.db
 .DS_Store
 Thumbs.db
 *.log
 huggingface/
 .cache/
 .tools/
-frontend/.env.production
+tmp_sync*
+tmp_co_*
+_build_sync_sql.py
+_print_aapl.py
+
+# SQLite sidecars never committed
+*.db-wal
+*.db-shm
+
+# Ignore local DBs by default
+*.db
+
+# Ignore working data dir contents…
+backend/data/*
+!backend/data/.gitkeep
+
+# …except the Mac→Windows transfer package (DB via Git LFS)
+!backend/data/transfer/
+!backend/data/transfer/
+!backend/data/transfer/**
+!backend/data/transfer/*.db

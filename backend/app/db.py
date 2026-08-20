@@ -132,6 +132,22 @@ def init_db() -> None:
             );
 
             CREATE INDEX IF NOT EXISTS quality_log_ticker_idx ON quality_log(ticker);
+
+            -- Phase 3B: filing-level checkpoint / resume statuses.
+            CREATE TABLE IF NOT EXISTS filing_jobs (
+                accession TEXT PRIMARY KEY,
+                ticker TEXT NOT NULL,
+                cik TEXT NOT NULL,
+                form TEXT,
+                status TEXT NOT NULL,
+                stage TEXT,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                elapsed_s REAL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS filing_jobs_ticker_idx ON filing_jobs(ticker);
+            CREATE INDEX IF NOT EXISTS filing_jobs_status_idx ON filing_jobs(status);
             """
         )
         # Migrate older mda tables that lack extraction metadata columns.
@@ -180,6 +196,24 @@ def init_db() -> None:
             """
         )
         conn.execute("CREATE INDEX IF NOT EXISTS quality_log_ticker_idx ON quality_log(ticker)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS filing_jobs (
+                accession TEXT PRIMARY KEY,
+                ticker TEXT NOT NULL,
+                cik TEXT NOT NULL,
+                form TEXT,
+                status TEXT NOT NULL,
+                stage TEXT,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                elapsed_s REAL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS filing_jobs_ticker_idx ON filing_jobs(ticker)")
+        conn.execute("CREATE INDEX IF NOT EXISTS filing_jobs_status_idx ON filing_jobs(status)")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS phase2_company_stats (
@@ -255,6 +289,13 @@ def list_filings(ticker: str) -> list[sqlite3.Row]:
             "SELECT * FROM filings WHERE ticker = ? ORDER BY filed DESC",
             (ticker.upper(),),
         ).fetchall()
+
+
+def delete_filings_for_ticker(ticker: str) -> int:
+    """Remove filing rows for a ticker (analyses/mda keyed by accession are kept)."""
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM filings WHERE ticker = ?", (ticker.upper(),))
+        return int(cur.rowcount)
 
 
 def get_filing(accession: str) -> Optional[sqlite3.Row]:
@@ -543,4 +584,89 @@ def quality_log_counts() -> dict[str, int]:
             "SELECT COUNT(*) AS n FROM quality_log WHERE ni_status = 'ok'"
         ).fetchone()["n"]
     return {"attempted": int(total), "scored": int(ok), "revenue_ok": int(rev), "ni_ok": int(ni)}
+
+
+# --- filing_jobs (Phase 3B checkpoint / resume) ---------------------------------
+
+JOB_PENDING = "pending"
+JOB_PROCESSING = "processing"
+JOB_COMPLETE = "complete"
+JOB_FAILED_RETRYABLE = "failed_retryable"
+JOB_FAILED_FINAL = "failed_final"
+
+
+def upsert_filing_job(row: dict[str, Any]) -> None:
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO filing_jobs(
+                accession, ticker, cik, form, status, stage, attempts, last_error, elapsed_s, updated_at
+            ) VALUES (
+                :accession, :ticker, :cik, :form, :status, :stage, :attempts, :last_error, :elapsed_s, :updated_at
+            )
+            ON CONFLICT(accession) DO UPDATE SET
+                ticker=excluded.ticker,
+                cik=excluded.cik,
+                form=excluded.form,
+                status=excluded.status,
+                stage=excluded.stage,
+                attempts=excluded.attempts,
+                last_error=excluded.last_error,
+                elapsed_s=excluded.elapsed_s,
+                updated_at=excluded.updated_at
+            """,
+            row,
+        )
+
+
+def get_filing_job(accession: str) -> Optional[sqlite3.Row]:
+    with get_db() as conn:
+        return conn.execute(
+            "SELECT * FROM filing_jobs WHERE accession = ?", (accession,)
+        ).fetchone()
+
+
+def list_filing_jobs(
+    *, ticker: Optional[str] = None, status: Optional[str] = None
+) -> list[sqlite3.Row]:
+    with get_db() as conn:
+        clauses: list[str] = []
+        args: list[Any] = []
+        if ticker:
+            clauses.append("ticker = ?")
+            args.append(ticker.upper())
+        if status:
+            clauses.append("status = ?")
+            args.append(status)
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        return conn.execute(
+            f"SELECT * FROM filing_jobs{where} ORDER BY updated_at DESC", args
+        ).fetchall()
+
+
+def filing_job_status_counts() -> dict[str, int]:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT status, COUNT(*) AS n FROM filing_jobs GROUP BY status"
+        ).fetchall()
+    return {r["status"]: int(r["n"]) for r in rows}
+
+
+def count_completed_analyses_for_ticker(ticker: str) -> int:
+    """Accessions for ticker that already have a sentiment analysis row."""
+    with get_db() as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS n
+            FROM filings f
+            JOIN analyses a ON a.accession = f.accession
+            WHERE f.ticker = ?
+            """,
+            (ticker.upper(),),
+        ).fetchone()
+        return int(row["n"]) if row else 0
+
+
+def analysis_complete(accession: str) -> bool:
+    return get_analysis(accession) is not None
 

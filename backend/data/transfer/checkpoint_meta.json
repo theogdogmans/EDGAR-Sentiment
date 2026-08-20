@@ -1,0 +1,450 @@
+{
+  "created_at": "2026-08-20T23:35:12.328448+00:00",
+  "source_db": "backend/data/edgar_phase3.db",
+  "transfer_db": "backend/data/transfer/edgar_phase3_transfer.db",
+  "size_bytes": 437030912,
+  "integrity_check": "ok",
+  "counts": {
+    "analyses": 1110,
+    "quality_log": 1219,
+    "quality_scored": 1110,
+    "filings": 1280,
+    "companies": 501,
+    "sp500": 502,
+    "mda": 1114,
+    "filing_jobs": 1192,
+    "jobs_complete": 1110,
+    "tickers_with_analyses": 65,
+    "distinct_ciks_in_filings": 65
+  },
+  "sha256": "a706bb36758f38f5ee4bfbe922ce861cf504a7ec3f885e10ff0f704b73f1903f",
+  "resume_command": "PYTHONPATH=backend PHASE3_DB_NAME=edgar_phase3.db python -u backend/scripts/phase3_rebuild.py --all --limit 20 --skip-completed",
+  "stopped_note": "Phase 3 stopped cleanly on Mac for Windows GPU transfer. Do not resume on Mac.",
+  "progress_snapshot": {
+    "started_at": "2026-08-20T21:55:24.636586+00:00",
+    "db": "/Users/user/Projects/EDGAR-Sentiment/backend/data/edgar_phase3.db",
+    "limit": 20,
+    "skip_completed": true,
+    "force_analyze": false,
+    "mode": "registrant",
+    "tickers_requested": 502,
+    "completed": [
+      {
+        "ticker": "AMD",
+        "cik": "0000002488",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 19,
+        "ni_ok": 19,
+        "rev_ok": 19,
+        "errors": [
+          "ValueError: Could not extract MD&A text from this filing"
+        ],
+        "at": "2026-08-20T21:59:26.831042+00:00"
+      },
+      {
+        "ticker": "AME",
+        "cik": "0001037868",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 11,
+        "ni_ok": 11,
+        "rev_ok": 11,
+        "errors": [
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known"
+        ],
+        "at": "2026-08-20T22:02:48.227229+00:00"
+      },
+      {
+        "ticker": "AMGN",
+        "cik": "0000318154",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 0,
+        "scored": 0,
+        "ni_ok": 0,
+        "rev_ok": 0,
+        "errors": [
+          "list_filings: ConnectError: [Errno 8] nodename nor servname provided, or not known"
+        ],
+        "at": "2026-08-20T22:02:53.149781+00:00"
+      },
+      {
+        "ticker": "AMP",
+        "cik": "0000820027",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 12,
+        "ni_ok": 12,
+        "rev_ok": 0,
+        "errors": [
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known",
+          "ConnectError: [Errno 8] nodename nor servname provided, or not known"
+        ],
+        "at": "2026-08-20T22:29:01.582495+00:00"
+      },
+      {
+        "ticker": "AMT",
+        "cik": "0001053507",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 5,
+        "ni_ok": 0,
+        "rev_ok": 0,
+        "errors": [
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing"
+        ],
+        "at": "2026-08-20T22:30:17.738228+00:00"
+      },
+      {
+        "ticker": "ANET",
+        "cik": "0001596532",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T22:32:06.548656+00:00"
+      },
+      {
+        "ticker": "AON",
+        "cik": "0000315293",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 18,
+        "rev_ok": 0,
+        "errors": [],
+        "at": "2026-08-20T22:34:35.584863+00:00"
+      },
+      {
+        "ticker": "AOS",
+        "cik": "0000091142",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 18,
+        "rev_ok": 18,
+        "errors": [],
+        "at": "2026-08-20T22:36:35.682649+00:00"
+      },
+      {
+        "ticker": "APA",
+        "cik": "0001841666",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 5,
+        "ni_ok": 1,
+        "rev_ok": 0,
+        "errors": [
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing"
+        ],
+        "at": "2026-08-20T22:37:41.110631+00:00"
+      },
+      {
+        "ticker": "APD",
+        "cik": "0000002969",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T22:40:03.106384+00:00"
+      },
+      {
+        "ticker": "APH",
+        "cik": "0000820313",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 5,
+        "ni_ok": 5,
+        "rev_ok": 5,
+        "errors": [
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing",
+          "ValueError: Could not extract MD&A text from this filing"
+        ],
+        "at": "2026-08-20T22:41:16.052609+00:00"
+      },
+      {
+        "ticker": "APO",
+        "cik": "0001858681",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 18,
+        "scored": 18,
+        "ni_ok": 16,
+        "rev_ok": 0,
+        "errors": [],
+        "at": "2026-08-20T22:43:35.130422+00:00"
+      },
+      {
+        "ticker": "APP",
+        "cik": "0001751008",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 19,
+        "rev_ok": 19,
+        "errors": [],
+        "at": "2026-08-20T22:46:09.760552+00:00"
+      },
+      {
+        "ticker": "APTV",
+        "cik": "0001521332",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T22:48:59.299677+00:00"
+      },
+      {
+        "ticker": "ARE",
+        "cik": "0001035443",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 0,
+        "errors": [],
+        "at": "2026-08-20T22:52:57.997370+00:00"
+      },
+      {
+        "ticker": "ARES",
+        "cik": "0001176948",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 14,
+        "rev_ok": 0,
+        "errors": [],
+        "at": "2026-08-20T22:56:38.655811+00:00"
+      },
+      {
+        "ticker": "ATO",
+        "cik": "0000731802",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T22:59:11.680585+00:00"
+      },
+      {
+        "ticker": "AVY",
+        "cik": "0000008818",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T23:01:08.907102+00:00"
+      },
+      {
+        "ticker": "AWK",
+        "cik": "0001410636",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T23:04:33.526644+00:00"
+      },
+      {
+        "ticker": "AXON",
+        "cik": "0001069183",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T23:07:33.183612+00:00"
+      },
+      {
+        "ticker": "AXP",
+        "cik": "0000004962",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 0,
+        "errors": [],
+        "at": "2026-08-20T23:11:07.304498+00:00"
+      },
+      {
+        "ticker": "AZO",
+        "cik": "0000866787",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T23:13:43.318123+00:00"
+      },
+      {
+        "ticker": "BA",
+        "cik": "0000012927",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T23:16:29.711725+00:00"
+      },
+      {
+        "ticker": "BAC",
+        "cik": "0000070858",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 0,
+        "errors": [],
+        "at": "2026-08-20T23:21:07.749363+00:00"
+      },
+      {
+        "ticker": "BALL",
+        "cik": "0000009389",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 0,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T23:23:56.746197+00:00"
+      },
+      {
+        "ticker": "BAX",
+        "cik": "0000010456",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 20,
+        "rev_ok": 20,
+        "errors": [],
+        "at": "2026-08-20T23:27:12.000222+00:00"
+      },
+      {
+        "ticker": "BBY",
+        "cik": "0000764478",
+        "cik_resolution": "company_tickers",
+        "filings_attempted": 20,
+        "scored": 20,
+        "ni_ok": 19,
+        "rev_ok": 19,
+        "errors": [],
+        "at": "2026-08-20T23:30:19.573241+00:00"
+      }
+    ],
+    "skipped_aliases": [
+      {
+        "alias": "GOOG",
+        "canonical": "GOOGL",
+        "cik": "0001652044"
+      },
+      {
+        "alias": "FOXA",
+        "canonical": "FOX",
+        "cik": "0001754301"
+      },
+      {
+        "alias": "NWSA",
+        "canonical": "NWS",
+        "cik": "0001564708"
+      }
+    ],
+    "errors": [
+      {
+        "ticker": "AMGN",
+        "error": "list_filings: ConnectError: [Errno 8] nodename nor servname provided, or not known",
+        "at": "2026-08-20T22:02:53.149835+00:00"
+      }
+    ],
+    "running": false,
+    "registrants_total": 499,
+    "current": "BBY",
+    "elapsed_s": 5694.9,
+    "coverage": {
+      "companies": 502,
+      "with_filings": 64,
+      "filings": 1260,
+      "analyzed": 1091,
+      "ready": 61
+    },
+    "quality": {
+      "attempted": 1200,
+      "scored": 1091,
+      "revenue_ok": 794,
+      "ni_ok": 1000
+    },
+    "jobs": {
+      "complete": 1091,
+      "failed_final": 63,
+      "pending": 18
+    },
+    "stopped_for_transfer_at": "2026-08-20T23:34:13.244874+00:00",
+    "note": "Stopped cleanly for Mac\u2192Windows GPU transfer; do not resume on this Mac."
+  }
+}
