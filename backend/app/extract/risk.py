@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .mda import _slice_between, _visible_text
+from .mda import _visible_text
 from .. import db
 from ..config import SEC_USER_AGENT
 from ..edgar.client import download_filing_html
@@ -17,6 +17,18 @@ ITEM1A_END = re.compile(
     r"item\s*1b[\.:]?|item\s*2[\.:]?\s*(?:properties|unresolved)",
     re.I,
 )
+
+
+def _slice_between(text: str, start_re: re.Pattern[str], end_re: re.Pattern[str]) -> str:
+    starts = [m.start() for m in start_re.finditer(text)]
+    if not starts:
+        return ""
+    cutoff = int(len(text) * 0.08)
+    later = [s for s in starts if s >= cutoff]
+    start = later[0] if later else starts[-1]
+    end_match = end_re.search(text, start + 20)
+    end = end_match.start() if end_match else min(len(text), start + 80_000)
+    return text[start:end].strip()
 
 
 def extract_risk_from_html(html: str, form: str) -> str:

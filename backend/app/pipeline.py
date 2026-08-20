@@ -59,12 +59,22 @@ def analyze_filing(accession: str, force: bool = False) -> dict[str, Any]:
             parsed = db.analysis_to_dict(cached)
             return {**filing, **parsed, "analyzed": True}
 
-    text, source = extract_mda(filing, force=force)
+    text, mda_meta = extract_mda(filing, force=force)
     sentiment = analyze_text(text)
     facts = load_company_facts(filing["cik"])
-    metrics = metrics_for_filing(facts, accession, filing["form"])
-    agr_income = agreement(sentiment["score"], (metrics.get("net_income") or {}).get("pct_change"))
-    agr_rev = agreement(sentiment["score"], (metrics.get("revenue") or {}).get("pct_change"))
+    sp = db.get_sp500(filing["ticker"])
+    sector = sp["sector"] if sp else None
+    metrics = metrics_for_filing(
+        facts,
+        accession,
+        filing["form"],
+        report_date=filing.get("report_date"),
+        sector=sector,
+    )
+    ni_pct = (metrics.get("net_income") or {}).get("pct_change")
+    rev_pct = (metrics.get("revenue") or {}).get("pct_change")
+    agr_income = agreement(sentiment["score"], ni_pct)
+    agr_rev = agreement(sentiment["score"], rev_pct)
     db.set_analysis(
         {
             "accession": accession,
@@ -81,7 +91,8 @@ def analyze_filing(accession: str, force: bool = False) -> dict[str, Any]:
     )
     result = {
         **filing,
-        "mda_source": source,
+        "mda_source": mda_meta.get("source"),
+        "mda_meta": mda_meta,
         "sentiment": {
             "score": sentiment["score"],
             "positive_share": sentiment["positive_share"],

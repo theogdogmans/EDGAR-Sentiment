@@ -54,7 +54,11 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS mda (
                 accession TEXT PRIMARY KEY,
                 text TEXT NOT NULL,
-                source TEXT NOT NULL
+                source TEXT NOT NULL,
+                start_heading TEXT,
+                end_heading TEXT,
+                status TEXT,
+                confidence TEXT
             );
 
             CREATE TABLE IF NOT EXISTS analyses (
@@ -84,6 +88,16 @@ def init_db() -> None:
             );
             """
         )
+        # Migrate older mda tables that lack extraction metadata columns.
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(mda)").fetchall()}
+        for col, decl in (
+            ("start_heading", "TEXT"),
+            ("end_heading", "TEXT"),
+            ("status", "TEXT"),
+            ("confidence", "TEXT"),
+        ):
+            if col not in cols:
+                conn.execute(f"ALTER TABLE mda ADD COLUMN {col} {decl}")
 
 
 def meta_get(key: str) -> Optional[str]:
@@ -155,12 +169,30 @@ def get_mda(accession: str) -> Optional[sqlite3.Row]:
         return conn.execute("SELECT * FROM mda WHERE accession = ?", (accession,)).fetchone()
 
 
-def set_mda(accession: str, text: str, source: str) -> None:
+def set_mda(
+    accession: str,
+    text: str,
+    source: str,
+    *,
+    start_heading: str = "",
+    end_heading: str = "",
+    status: str = "ok",
+    confidence: str = "unknown",
+) -> None:
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO mda(accession, text, source) VALUES(?,?,?) "
-            "ON CONFLICT(accession) DO UPDATE SET text=excluded.text, source=excluded.source",
-            (accession, text, source),
+            """
+            INSERT INTO mda(accession, text, source, start_heading, end_heading, status, confidence)
+            VALUES(?,?,?,?,?,?,?)
+            ON CONFLICT(accession) DO UPDATE SET
+                text=excluded.text,
+                source=excluded.source,
+                start_heading=excluded.start_heading,
+                end_heading=excluded.end_heading,
+                status=excluded.status,
+                confidence=excluded.confidence
+            """,
+            (accession, text, source, start_heading, end_heading, status, confidence),
         )
 
 

@@ -9,3 +9,4 @@ numpy>=1.26.0
 scipy>=1.13.0
 edgartools>=3.0.0
 supabase>=2.9.0
+pytest>=8.0.0
