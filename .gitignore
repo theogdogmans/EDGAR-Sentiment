@@ -36,3 +36,7 @@ backend/data/*
 !backend/data/transfer/
 !backend/data/transfer/**
 !backend/data/transfer/*.db
+
+# Re-ignore SQLite sidecars under transfer/
+backend/data/transfer/*.db-wal
+backend/data/transfer/*.db-shm
