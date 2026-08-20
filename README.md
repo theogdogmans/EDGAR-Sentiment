@@ -4,6 +4,8 @@ S&P 500 10-K / 10-Q **MD&A sentiment** vs the numbers in the statements — expl
 
 The **website** reads slim aggregates on [Supabase](https://supabase.com) Free. A **local Python worker** talks to SEC EDGAR and FinBERT, then publishes industry/company rollups (not full sentence dumps).
 
+Live site: [edgar-sentiment-demo.vercel.app](https://edgar-sentiment-demo.vercel.app)
+
 Live repo: [theogdogmans/EDGAR-Sentiment](https://github.com/theogdogmans/EDGAR-Sentiment)
 
 ## Architecture

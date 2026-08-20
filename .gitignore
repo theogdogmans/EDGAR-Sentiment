@@ -21,3 +21,4 @@ Thumbs.db
 huggingface/
 .cache/
 .tools/
+frontend/.env.production
