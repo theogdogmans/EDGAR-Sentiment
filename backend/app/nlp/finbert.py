@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-from ..config import FINBERT_MODEL
+from ..config import FINBERT_BATCH_SIZE, FINBERT_MODEL
 
 _lock = threading.Lock()
 _tokenizer = None
@@ -62,7 +62,11 @@ def _select_sentences(sentences: list[str], limit: int = 220) -> list[str]:
     return [sentences[i] for i in idx]
 
 
-def score_sentences(sentences: list[str], batch_size: int = 24) -> list[dict[str, Any]]:
+def score_sentences(
+    sentences: list[str], batch_size: int | None = None
+) -> list[dict[str, Any]]:
+    if batch_size is None:
+        batch_size = FINBERT_BATCH_SIZE
     tokenizer, model = _load()
     import torch
     import torch.nn.functional as F
@@ -84,7 +88,7 @@ def score_sentences(sentences: list[str], batch_size: int = 24) -> list[dict[str
                 return_tensors="pt",
             )
             encoded = {k: v.to(device) for k, v in encoded.items()}
-            with torch.no_grad():
+            with torch.inference_mode():
                 logits = model(**encoded).logits
                 probs = F.softmax(logits, dim=-1).cpu().numpy()
             for text, dist in zip(batch, probs):
@@ -106,11 +110,11 @@ def score_sentences(sentences: list[str], batch_size: int = 24) -> list[dict[str
     return results
 
 
-def analyze_text(text: str) -> dict[str, Any]:
+def analyze_text(text: str, batch_size: int | None = None) -> dict[str, Any]:
     sentences = _select_sentences(split_sentences(text))
     if not sentences:
         raise ValueError("No usable sentences in MD&A")
-    scored = score_sentences(sentences)
+    scored = score_sentences(sentences, batch_size=batch_size)
     n = len(scored)
     pos_n = sum(1 for s in scored if s["label"] == "positive")
     neg_n = sum(1 for s in scored if s["label"] == "negative")

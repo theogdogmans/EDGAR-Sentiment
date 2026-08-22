@@ -41,6 +41,7 @@ TICKER_MAX_FAILURES = int(os.getenv("TICKER_MAX_FAILURES", "8"))
 MIN_CIK_HISTORY = int(os.getenv("MIN_CIK_HISTORY", "6"))
 
 FINBERT_MODEL = os.getenv("FINBERT_MODEL", "ProsusAI/finbert")
+FINBERT_BATCH_SIZE = int(os.getenv("FINBERT_BATCH_SIZE", "24"))
 SP500_CSV_URLS = (
     "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv",
     "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv",

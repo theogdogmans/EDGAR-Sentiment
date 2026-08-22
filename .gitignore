@@ -40,3 +40,13 @@ backend/data/*
 # Re-ignore SQLite sidecars under transfer/
 backend/data/transfer/*.db-wal
 backend/data/transfer/*.db-shm
+
+# Phase 4 research report artifacts (not the multi-GB final DB)
+!backend/data/phase4/
+!backend/data/phase4/**
+backend/data/phase4/*.db
+backend/data/phase4/*.db-wal
+backend/data/phase4/*.db-shm
+backend/data/final/*.db
+backend/data/final/*.db-wal
+backend/data/final/*.db-shm

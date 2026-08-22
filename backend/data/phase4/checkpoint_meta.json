@@ -1,0 +1,13 @@
+{
+  "integrity": "ok",
+  "backup_integrity": "ok",
+  "backup_path": "C:\\Users\\joshp\\edgar-sentiment\\backend\\data\\final\\edgar_phase3_final.db",
+  "db_bytes": 3207294976,
+  "db_mb": 3058.71,
+  "analyses": 9697,
+  "quality_attempted": 9787,
+  "unique_ciks": 499,
+  "sp500_rows": 502,
+  "companies_built": 502,
+  "sectors_built": 11
+}
