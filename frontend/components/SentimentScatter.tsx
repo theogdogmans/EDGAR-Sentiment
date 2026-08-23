@@ -11,6 +11,7 @@ import {
   YAxis,
   ZAxis,
 } from "recharts";
+import { fmtFilingDate, fmtPct, fmtScore } from "@/lib/format";
 
 type Point = {
   form?: string | null;
@@ -18,6 +19,7 @@ type Point = {
   ticker?: string;
   sentiment: number;
   income: number;
+  revenue?: number | null;
 };
 
 export default function SentimentScatter({ points }: { points: Point[] }) {
@@ -25,15 +27,17 @@ export default function SentimentScatter({ points }: { points: Point[] }) {
     return <p className="muted">Not enough scored filings for a scatter yet.</p>;
   }
   return (
-    <div className="chart-wrap">
-      <div className="chart-axis-hint" aria-hidden="true">
-        <span className="hint-left">More negative tone</span>
-        <span className="hint-right">More positive tone</span>
+    <div className="chart-wrap chart-centerpiece">
+      <div className="chart-quad-labels" aria-hidden="true">
+        <span className="ql-top">Earnings improved</span>
+        <span className="ql-bottom">Earnings declined</span>
+        <span className="ql-left">More negative tone</span>
+        <span className="ql-right">More positive tone</span>
       </div>
-      <div style={{ width: "100%", height: 320 }}>
-        <ResponsiveContainer>
-          <ScatterChart margin={{ top: 12, right: 16, bottom: 28, left: 12 }}>
-            <CartesianGrid stroke="#d7cdbc" strokeDasharray="3 3" />
+      <div className="chart-canvas">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 16, right: 20, bottom: 36, left: 16 }}>
+            <CartesianGrid stroke="#ddd4c5" strokeDasharray="3 3" />
             <ReferenceLine y={0} stroke="#b8ae9c" />
             <ReferenceLine x={0} stroke="#b8ae9c" />
             <XAxis
@@ -41,38 +45,35 @@ export default function SentimentScatter({ points }: { points: Point[] }) {
               dataKey="sentiment"
               name="Tone"
               domain={[-1, 1]}
-              tick={{ fontSize: 12 }}
-              label={{ value: "MD&A tone", position: "bottom", offset: 8 }}
+              tick={{ fontSize: 12, fill: "#6d6458" }}
+              label={{ value: "MD&A tone", position: "bottom", offset: 12, fill: "#6d6458" }}
             />
             <YAxis
               type="number"
               dataKey="income"
               name="Earnings YoY %"
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, fill: "#6d6458" }}
               label={{
-                value: "Earnings change (YoY %)",
+                value: "Net income YoY %",
                 angle: -90,
                 position: "insideLeft",
-                style: { textAnchor: "middle" },
+                style: { textAnchor: "middle", fill: "#6d6458" },
               }}
             />
-            <ZAxis range={[80, 80]} />
+            <ZAxis range={[90, 90]} />
             <Tooltip
-              formatter={(value: number, name: string) =>
-                name === "Tone" ? value.toFixed(2) : `${value.toFixed(1)}%`
-              }
-              labelFormatter={() => ""}
               content={({ payload }) => {
                 const p = payload?.[0]?.payload as Point | undefined;
                 if (!p) return null;
                 return (
                   <div className="chart-tooltip">
-                    {p.ticker ? <div>{p.ticker}</div> : null}
+                    {p.ticker ? <div className="tip-strong">{p.ticker}</div> : null}
                     <div>
-                      {p.form} {p.filed}
+                      {p.form} · {fmtFilingDate(p.filed)}
                     </div>
-                    <div>Tone {p.sentiment.toFixed(2)}</div>
-                    <div>Net income {p.income.toFixed(1)}%</div>
+                    <div>Tone {fmtScore(p.sentiment)}</div>
+                    <div>Net income YoY {p.income.toFixed(1)}%</div>
+                    {p.revenue != null ? <div>Revenue YoY {fmtPct(p.revenue / 100)}</div> : null}
                   </div>
                 );
               }}
@@ -80,10 +81,6 @@ export default function SentimentScatter({ points }: { points: Point[] }) {
             <Scatter data={points} fill="#243b55" />
           </ScatterChart>
         </ResponsiveContainer>
-      </div>
-      <div className="chart-axis-hint vertical-hints" aria-hidden="true">
-        <span>Earnings improved ↑</span>
-        <span>Earnings declined ↓</span>
       </div>
     </div>
   );

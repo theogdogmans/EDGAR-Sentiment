@@ -3,12 +3,10 @@ import { notFound } from "next/navigation";
 import FdrBadge from "@/components/FdrBadge";
 import MethodologyLink from "@/components/MethodologyLink";
 import SentimentScatter from "@/components/SentimentScatter";
+import StrengthBar from "@/components/StrengthBar";
 import { loadSiteData } from "@/lib/data";
-import {
-  observationsPhrase,
-  relationshipFromRho,
-} from "@/lib/explain";
-import { fmtR, toneClass } from "@/lib/format";
+import { observationsPhrase, relationshipFromRho } from "@/lib/explain";
+import { fmtCount, fmtR, toneClass } from "@/lib/format";
 import { formIs10Q, isFdrSignificant, ni10q, sortCompanies } from "@/lib/phase5";
 import { findSectorBySlug, sectorSlug } from "@/lib/sector";
 
@@ -47,50 +45,61 @@ export default async function IndustryPage({
       ticker: p.ticker,
       form: p.form,
       filed: p.filed,
-      sentiment: Number((p.sentiment as number).toFixed(4)),
-      income: Number(((p.income_pct as number) * 100).toFixed(2)),
+      sentiment: Number(p.sentiment),
+      income: Number((p.income_pct as number) * 100),
+      revenue: p.revenue_pct == null ? null : Number(p.revenue_pct) * 100,
     }));
 
   return (
     <>
       <p className="back">
-        <Link href="/">← Overview</Link>
+        <Link href="/industries">← Industries</Link>
       </p>
       <section className="hero">
         <div className="kicker">Industry</div>
         <h1>{match.sector}</h1>
         <p className="lede">
-          Across {match.n_companies} companies ({match.n_filings} scored filings), does management
-          tone tend to move with quarterly earnings? Two complementary views are shown below.
+          {fmtCount(match.n_companies)} companies · {fmtCount(match.n_filings)} scored filings
         </p>
       </section>
 
-      <div className="panel dual-weight">
-        <h2>Two ways to read this industry</h2>
-        <div className="dual-grid">
-          <article>
-            <h3>Does the typical filing show a relationship?</h3>
-            <div className={`rel-label lg ${fwLabel.tone}`}>{fwLabel.short}</div>
-            <p className="muted tiny">
-              Filing-weighted · Spearman {fmtR(fwRho)} · {observationsPhrase(fwN)}
-            </p>
-          </article>
-          <article>
-            <h3>Does the typical company show a relationship?</h3>
-            <div className={`rel-label lg ${cbLabel.tone}`}>{cbLabel.short}</div>
-            <p className="muted tiny">
-              Company-balanced · Pearson {fmtR(cbR)}
-              {cbN != null ? ` · ${cbN} companies` : ""}
-            </p>
-          </article>
-        </div>
-        <p className="hint">
-          These views can differ when a few large filers dominate.{" "}
-          <MethodologyLink topic="sector-weighting">Why are these different? →</MethodologyLink>
-        </p>
+      <div className="dual-grid dual-hero">
+        <article className="panel soft">
+          <h3>Typical filing</h3>
+          <div className={`rel-label display ${fwLabel.tone}`}>{fwLabel.short}</div>
+          <StrengthBar rho={fwRho} tone={fwLabel.tone} />
+          <p className="muted tiny">
+            Filing-weighted · Spearman {fmtR(fwRho)} · {observationsPhrase(fwN, "quarterly")}
+          </p>
+        </article>
+        <article className="panel soft">
+          <h3>Typical company</h3>
+          <div className={`rel-label display ${cbLabel.tone}`}>{cbLabel.short}</div>
+          <StrengthBar rho={cbR} tone={cbLabel.tone} />
+          <p className="muted tiny">
+            Company-balanced · Pearson {fmtR(cbR)}
+            {cbN != null ? ` · ${cbN} companies` : ""}
+          </p>
+        </article>
       </div>
+      <p className="hint open-hint">
+        These differ because companies with more filings receive more weight in the filing-level
+        calculation.{" "}
+        <MethodologyLink topic="sector-weighting">Why are these different? →</MethodologyLink>
+      </p>
 
-      <details className="panel">
+      {!revOk ? (
+        <div className="empty-state panel soft">
+          <strong>Revenue comparison not used</strong>
+          <p>
+            Revenue-like concepts are not comparable enough across companies in this sector for the
+            primary analysis.
+          </p>
+          <MethodologyLink topic="financial-data">Why? →</MethodologyLink>
+        </div>
+      ) : null}
+
+      <details className="panel soft">
         <summary>
           <strong>Technical sector measures</strong>
         </summary>
@@ -112,19 +121,11 @@ export default async function IndustryPage({
               <th>Company-balanced Pearson</th>
               <td className={toneClass(cbR)}>{fmtR(cbR)}</td>
             </tr>
-            <tr>
-              <th>Revenue</th>
-              <td>
-                {revOk
-                  ? "Comparable revenue associations available as secondary on company pages."
-                  : "Revenue comparison not used due to cross-company concept comparability."}
-              </td>
-            </tr>
           </tbody>
         </table>
       </details>
 
-      <div className="panel">
+      <div className="panel soft chart-panel">
         <h2>Quarterly filings in this industry</h2>
         <p className="hint">
           Each dot is one 10-Q.{" "}
@@ -133,11 +134,8 @@ export default async function IndustryPage({
         <SentimentScatter points={scatter} />
       </div>
 
-      <div className="panel">
+      <div className="panel soft">
         <h2>Companies in {match.sector}</h2>
-        <p className="hint">
-          Members with enough quarterly observations, sorted by company-level relationship strength.
-        </p>
         <div className="table-scroll">
           <table className="company-rank-table">
             <thead>
@@ -145,7 +143,6 @@ export default async function IndustryPage({
                 <th>Company</th>
                 <th>Relationship</th>
                 <th>Sample</th>
-                <th>Numbers</th>
               </tr>
             </thead>
             <tbody>
@@ -161,13 +158,9 @@ export default async function IndustryPage({
                     </td>
                     <td>
                       <div className={`rel-label ${label.tone}`}>{label.short}</div>
+                      <div className="muted tiny">Spearman {fmtR(ni.spearman_rho)}</div>
                     </td>
                     <td>{observationsPhrase(ni.n)}</td>
-                    <td className="muted tiny">
-                      Spearman {fmtR(ni.spearman_rho)}
-                      <br />
-                      Pearson {fmtR(ni.pearson_r)}
-                    </td>
                   </tr>
                 );
               })}

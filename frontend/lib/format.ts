@@ -11,10 +11,11 @@ export function fmtAgreePct(value: number | null | undefined): string {
   return `${value.toFixed(0)}%`;
 }
 
+/** Filing-level MD&A tone in [-1, 1]. Use 3 dp so small nonzero values (e.g. 0.003) are visible. */
 export function fmtScore(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}`;
+  return `${sign}${value.toFixed(3)}`;
 }
 
 export function fmtMoney(value: number | null | undefined, unit?: string): string {
@@ -60,4 +61,22 @@ export function toneClass(value: number | null | undefined): string {
   if (value > 0.02) return "pos";
   if (value < -0.02) return "neg";
   return "muted";
+}
+
+/** Readable filing date: Aug 4, 2026 */
+export function fmtFilingDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const d = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function fmtCount(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return value.toLocaleString("en-US");
 }

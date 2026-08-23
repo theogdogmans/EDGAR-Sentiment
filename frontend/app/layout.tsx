@@ -13,10 +13,36 @@ const serif = Source_Serif_4({
   variable: "--font-serif",
 });
 
+const siteUrl = "https://www.edgarsentiment.site";
+
 export const metadata: Metadata = {
-  title: "edgar-sentiment",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "EDGAR Sentiment — Does the Tone Match the Numbers?",
+    template: "%s · EDGAR Sentiment",
+  },
   description:
-    "Does management MD&A tone move with the same period's earnings? S&P 500 contemporaneous analysis — not a forecast.",
+    "An analysis of 9,697 S&P 500 SEC filings comparing management's MD&A tone with quarterly financial performance. Exploratory research — not investment advice.",
+  openGraph: {
+    title: "EDGAR Sentiment — Does the Tone Match the Numbers?",
+    description:
+      "An analysis of 9,697 S&P 500 SEC filings comparing management's MD&A tone with quarterly financial performance.",
+    url: siteUrl,
+    siteName: "EDGAR Sentiment",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Does the tone match the numbers?" }],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EDGAR Sentiment — Does the Tone Match the Numbers?",
+    description:
+      "9,697 S&P 500 SEC filings: MD&A tone vs quarterly financial performance.",
+    images: ["/og.png"],
+  },
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav className="nav" aria-label="Main">
               <Link href="/">Overview</Link>
-              <Link href="/#companies">Companies</Link>
+              <Link href="/#explore">Companies</Link>
               <Link href="/industries">Industries</Link>
               <Link href="/methodology">Methodology</Link>
               <Link href="/about">About</Link>
@@ -38,11 +64,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </header>
           {children}
           <footer className="site-footer">
-            <p>
-              Contemporaneous research presentation — not predictive.{" "}
-              <Link href="/methodology">How this works</Link>
-              {" · "}
+            <div className="footer-links">
+              <Link href="/">Overview</Link>
+              <Link href="/#explore">Companies</Link>
+              <Link href="/industries">Industries</Link>
+              <Link href="/methodology">Methodology</Link>
               <Link href="/about">About</Link>
+              <a
+                href="https://github.com/theogdogmans/EDGAR-Sentiment"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                GitHub
+              </a>
+            </div>
+            <p className="footer-note">
+              Exploratory accounting/data analysis. Not investment advice. Contemporaneous
+              association only — not prediction or causation.
             </p>
           </footer>
         </div>

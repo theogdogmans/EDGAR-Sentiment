@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import MethodologyNav from "@/components/MethodologyNav";
 import { loadSiteData } from "@/lib/data";
+import { fmtCount } from "@/lib/format";
 import { isDefaultEligible, isFdrSignificant } from "@/lib/phase5";
 
 export const revalidate = 3600;
@@ -17,17 +19,19 @@ function Section({
   technical?: ReactNode;
 }) {
   return (
-    <section id={id} className="panel meth-section">
+    <section id={id} className="meth-section open-section">
       <h2>{title}</h2>
       <div className="plain-box">
         <div className="plain-label">Plain English</div>
         <div className="plain-body">{plain}</div>
       </div>
       {technical ? (
-        <div className="tech-box">
-          <div className="plain-label">Technical detail</div>
-          <div className="plain-body">{technical}</div>
-        </div>
+        <details className="tech-details">
+          <summary>Technical detail</summary>
+          <div className="tech-box">
+            <div className="plain-body">{technical}</div>
+          </div>
+        </details>
       ) : null}
     </section>
   );
@@ -40,7 +44,9 @@ export default async function MethodologyPage() {
   const fdr = companies.filter(isFdrSignificant).length;
 
   return (
-    <>
+    <div className="meth-layout">
+      <MethodologyNav />
+      <div className="meth-main">
       <section className="hero">
         <div className="kicker">How it works</div>
         <h1>Methodology</h1>
@@ -51,92 +57,21 @@ export default async function MethodologyPage() {
         </p>
       </section>
 
-      <nav className="toc panel" aria-label="Methodology sections">
-        <h2 className="toc-title">On this page</h2>
-        <ul className="toc-list">
-          <li>
-            <a href="#research-question">Research question</a>
-          </li>
-          <li>
-            <a href="#data">Data</a>
-          </li>
-          <li>
-            <a href="#mda">MD&amp;A</a>
-          </li>
-          <li>
-            <a href="#finbert">FinBERT</a>
-          </li>
-          <li>
-            <a href="#sentiment-score">Sentiment score</a>
-          </li>
-          <li>
-            <a href="#financial-data">Financial data</a>
-          </li>
-          <li>
-            <a href="#xbrl">XBRL</a>
-          </li>
-          <li>
-            <a href="#period-matching">Period matching</a>
-          </li>
-          <li>
-            <a href="#correlation">Correlation</a>
-          </li>
-          <li>
-            <a href="#spearman">Spearman</a>
-          </li>
-          <li>
-            <a href="#pearson">Pearson</a>
-          </li>
-          <li>
-            <a href="#agreement">Agreement</a>
-          </li>
-          <li>
-            <a href="#sample-size">Sample size</a>
-          </li>
-          <li>
-            <a href="#p-values">p-values</a>
-          </li>
-          <li>
-            <a href="#fdr">FDR</a>
-          </li>
-          <li>
-            <a href="#confidence-interval">Confidence intervals</a>
-          </li>
-          <li>
-            <a href="#relationship-labels">Relationship labels</a>
-          </li>
-          <li>
-            <a href="#sector-weighting">Sector weighting</a>
-          </li>
-          <li>
-            <a href="#scatterplots">Scatterplots</a>
-          </li>
-          <li>
-            <a href="#limitations">Limitations</a>
-          </li>
-        </ul>
-      </nav>
-
-      <div className="panel">
+      <div className="panel soft">
         <h2>At a glance</h2>
         <ul className="prose-list">
           <li>
-            <strong>{filings.toLocaleString()}</strong> scored filings in the{" "}
+            <strong>{fmtCount(filings)}</strong> scored filings in the{" "}
             {source === "phase5_preview" ? "preview" : "published"} rollup
           </li>
           <li>
-            Main company board: <strong>{board}</strong> companies with at least 8 quarterly
+            Main company board: <strong>{fmtCount(board)}</strong> companies with at least 8 quarterly
             observations
           </li>
           <li>
-            <strong>{fdr}</strong> companies remain notable after the multiple-testing adjustment
+            <strong>{fmtCount(fdr)}</strong> companies remain notable after the multiple-testing adjustment
           </li>
         </ul>
-        <p>
-          Overall finding: most companies show a <strong>weak-to-modest</strong> relationship
-          between management tone and quarterly earnings. A smaller group shows stronger and more
-          consistent patterns.
-        </p>
       </div>
 
       <Section
@@ -392,12 +327,37 @@ export default async function MethodologyPage() {
         id="fdr"
         title="FDR (multiple-testing adjustment)"
         plain={
-          <p>
-            We tested hundreds of companies. Some relationships will look “significant” by chance
-            alone. FDR (false discovery rate) adjusts for that problem. A badge that says the
-            relationship survives multiple-testing adjustment means it still stands out after that
-            correction — not that it is proven or economically large.
-          </p>
+          <>
+            <p>
+              If you test hundreds of companies, some can look significant just by luck. FDR (false
+              discovery rate) adjusts for that problem.
+            </p>
+            <div className="fdr-funnel" aria-label="FDR funnel illustration">
+              <div className="fdr-step">
+                <strong>{fmtCount(board)}</strong>
+                <span>ranking-eligible companies tested</span>
+              </div>
+              <div className="fdr-arrow" aria-hidden="true">
+                ↓
+              </div>
+              <div className="fdr-step">
+                <strong>raw p &lt; .05</strong>
+                <span>some look notable before adjustment</span>
+              </div>
+              <div className="fdr-arrow" aria-hidden="true">
+                ↓
+              </div>
+              <div className="fdr-step highlight">
+                <strong>{fmtCount(fdr)}</strong>
+                <span>remain after FDR q &lt; .05</span>
+              </div>
+            </div>
+            <p>
+              FDR helps reduce the chance that the leaderboard is highlighting random statistical
+              flukes. It does <strong>not</strong> prove the {fmtCount(fdr)} survivors are
+              economically important or causal.
+            </p>
+          </>
         }
         technical={
           <p>
@@ -510,6 +470,7 @@ export default async function MethodologyPage() {
         {" · "}
         <Link href="/about">About this project</Link>
       </p>
-    </>
+      </div>
+    </div>
   );
 }

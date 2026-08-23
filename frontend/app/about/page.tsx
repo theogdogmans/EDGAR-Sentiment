@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loadSiteData } from "@/lib/data";
+import { fmtCount } from "@/lib/format";
 import { isDefaultEligible, isFdrSignificant } from "@/lib/phase5";
 
 export const revalidate = 3600;
@@ -21,49 +22,68 @@ export default async function AboutPage() {
         </p>
       </section>
 
-      <div className="panel">
-        <h2>What this is</h2>
+      <section className="section open-section">
+        <h2>Why it was built</h2>
+        <p>
+          SEC filings are public, structured, and full of managerial language. This project asks a
+          simple accounting question with modern tools: when management explains performance in the
+          MD&amp;A, does the tone of that language tend to move with the numbers for the same
+          period?
+        </p>
+        <p>
+          It combines financial statement understanding, NLP scoring, careful period matching, and
+          transparent statistics — presented so a second-year accounting student can follow the
+          story without a stats course.
+        </p>
+      </section>
+
+      <section className="section open-section">
+        <h2>Scope</h2>
         <ul className="prose-list">
-          <li>Independent student research / portfolio project — not investment advice</li>
           <li>Current S&amp;P 500 constituents</li>
           <li>
-            <strong>{filings.toLocaleString()}</strong> scored filings in the published rollup
+            <strong>{fmtCount(filings)}</strong> scored filings in the published rollup
           </li>
           <li>
-            <strong>{board}</strong> companies on the main quarterly board · <strong>{fdr}</strong>{" "}
-            remain notable after multiple-testing adjustment
+            <strong>{fmtCount(board)}</strong> companies on the main quarterly board ·{" "}
+            <strong>{fmtCount(fdr)}</strong> remain notable after multiple-testing adjustment
           </li>
-          <li>
-            Sources: SEC filings, structured financial data (XBRL), and a finance-trained language
-            model for MD&amp;A tone
-          </li>
+          <li>Sources: SEC EDGAR filings, XBRL companyfacts, FinBERT for MD&amp;A tone</li>
         </ul>
         <p>
-          The purpose is to explore <strong>contemporaneous</strong> relationships between
-          managerial language and financial results — not to predict markets or recommend trades.
+          Purpose: explore <strong>contemporaneous</strong> relationships — not predict markets or
+          recommend trades.
         </p>
-      </div>
+      </section>
 
-      <div className="panel">
-        <h2>Code &amp; transparency</h2>
+      <section className="section built-with" aria-label="Built with">
+        <h2>Built with</h2>
+        <ul className="built-list">
+          <li>SEC EDGAR</li>
+          <li>XBRL</li>
+          <li>FinBERT</li>
+          <li>Python</li>
+          <li>Supabase</li>
+          <li>Next.js</li>
+        </ul>
+      </section>
+
+      <section className="section open-section">
+        <h2>Links</h2>
         <p>
-          Source repository:{" "}
           <a
             href="https://github.com/theogdogmans/EDGAR-Sentiment"
             target="_blank"
             rel="noopener noreferrer"
           >
-            github.com/theogdogmans/EDGAR-Sentiment
+            GitHub repository
           </a>
+          {" · "}
+          <Link href="/methodology">Methodology</Link>
+          {" · "}
+          <Link href="/">Live overview</Link>
         </p>
-        <p>
-          <Link href="/methodology">Read the methodology →</Link>
-        </p>
-      </div>
-
-      <p className="note">
-        <Link href="/">← Overview</Link>
-      </p>
+      </section>
     </>
   );
 }

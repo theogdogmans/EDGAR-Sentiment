@@ -41,10 +41,20 @@ export function sampleSizeLabel(n: number | null | undefined): string {
   return "Insufficient for rankings";
 }
 
-export function observationsPhrase(n: number | null | undefined): string {
-  if (n == null || n <= 0) return "no quarterly observations";
-  if (n === 1) return "1 quarterly observation";
-  return `${n} quarterly observations`;
+export function observationsPhrase(
+  n: number | null | undefined,
+  kind: "quarterly" | "annual" = "quarterly"
+): string {
+  const unit = kind === "annual" ? "annual" : "quarterly";
+  if (n == null || n <= 0) return `no ${unit} observations`;
+  if (n === 1) return `1 ${unit} observation`;
+  return `${n} ${unit} observations`;
+}
+
+/** Map Spearman ρ to 0–1 for a restrained strength bar (not a percentage score). */
+export function strengthBarWidth(rho: number | null | undefined): number {
+  if (rho == null || Number.isNaN(rho)) return 0;
+  return Math.min(1, Math.abs(rho));
 }
 
 export function agreementSentence(
