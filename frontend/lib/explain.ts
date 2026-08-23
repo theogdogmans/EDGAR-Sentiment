@@ -1,0 +1,152 @@
+/**
+ * Plain-English labels and copy helpers for Phase 6 clarity redesign.
+ * Does not change underlying statistics — presentation only.
+ */
+
+export type RelationshipBand =
+  | "strong_positive"
+  | "moderate_positive"
+  | "weak_positive"
+  | "little"
+  | "weak_negative"
+  | "moderate_negative"
+  | "strong_negative"
+  | "unknown";
+
+export type RelationshipLabel = {
+  band: RelationshipBand;
+  short: string;
+  tone: "pos" | "neg" | "neutral";
+};
+
+/** Documented descriptive thresholds (Spearman ρ). Not economic importance. */
+export function relationshipFromRho(rho: number | null | undefined): RelationshipLabel {
+  if (rho == null || Number.isNaN(rho)) {
+    return { band: "unknown", short: "Relationship not available", tone: "neutral" };
+  }
+  if (rho >= 0.7) return { band: "strong_positive", short: "Strong positive", tone: "pos" };
+  if (rho >= 0.4) return { band: "moderate_positive", short: "Moderate positive", tone: "pos" };
+  if (rho >= 0.2) return { band: "weak_positive", short: "Weak positive", tone: "pos" };
+  if (rho > -0.2) return { band: "little", short: "Little / no relationship", tone: "neutral" };
+  if (rho > -0.4) return { band: "weak_negative", short: "Weak negative", tone: "neg" };
+  if (rho > -0.7) return { band: "moderate_negative", short: "Moderate negative", tone: "neg" };
+  return { band: "strong_negative", short: "Strong negative", tone: "neg" };
+}
+
+export function sampleSizeLabel(n: number | null | undefined): string {
+  if (n == null || n <= 0) return "Sample size unavailable";
+  if (n >= 10) return "More established sample";
+  if (n >= 8) return "Usable sample";
+  if (n >= 6) return "Limited sample";
+  return "Insufficient for rankings";
+}
+
+export function observationsPhrase(n: number | null | undefined): string {
+  if (n == null || n <= 0) return "no quarterly observations";
+  if (n === 1) return "1 quarterly observation";
+  return `${n} quarterly observations`;
+}
+
+export function agreementSentence(
+  num: number | null | undefined,
+  den: number | null | undefined
+): string | null {
+  if (num == null || den == null || den <= 0) return null;
+  if (num === den) {
+    return `Tone and earnings moved in the same direction in all ${den} comparable quarters.`;
+  }
+  return `Tone and earnings moved in the same direction in ${num} of ${den} non-neutral quarters.`;
+}
+
+export function companyTakeaway(
+  name: string,
+  rho: number | null | undefined,
+  fdr: boolean
+): string {
+  const label = relationshipFromRho(rho);
+  const who = name || "This company";
+  let base: string;
+  switch (label.band) {
+    case "strong_positive":
+    case "moderate_positive":
+    case "weak_positive":
+      base = `${who}'s management tone tended to become more positive when quarterly net income improved.`;
+      break;
+    case "strong_negative":
+    case "moderate_negative":
+    case "weak_negative":
+      base = `${who}'s management tone and quarterly net income often moved in opposite directions.`;
+      break;
+    case "little":
+      base = `${who} shows little systematic relationship between management tone and quarterly net income.`;
+      break;
+    default:
+      base = `${who}: not enough data to summarize the tone–earnings relationship.`;
+  }
+  if (fdr && label.tone !== "neutral") {
+    return `${base} This relationship remains notable after adjusting for hundreds of company tests.`;
+  }
+  return base;
+}
+
+export const TERM_DEFS: Record<string, string> = {
+  mda: "Management's Discussion and Analysis — the section where management explains company performance, trends, and risks.",
+  finbert:
+    "A language model trained for financial text that estimates whether a sentence is positive, neutral, or negative.",
+  spearman:
+    "Measures whether higher tone generally goes with higher financial performance, without letting extreme earnings swings dominate.",
+  pearson: "Measures the strength of a straight-line relationship between tone and earnings changes.",
+  fdr: "Adjusts statistical evidence because hundreds of companies are being tested at once.",
+  yoy: "Year over year — compared with the same quarter one year earlier.",
+  xbrl: "Structured financial data reported to the SEC.",
+  agreement:
+    "How often tone and earnings moved in the same direction, after excluding near-neutral cases.",
+  "sample-size": "How many comparable quarterly filings enter the company relationship estimate.",
+  "filing-weighted": "Pools every filing in the sector — answers what a typical filing looks like.",
+  "company-balanced": "Gives each company equal weight — answers what a typical company looks like.",
+};
+
+export type MethodologyTopic =
+  | "research-question"
+  | "data"
+  | "mda"
+  | "finbert"
+  | "sentiment-score"
+  | "financial-data"
+  | "xbrl"
+  | "period-matching"
+  | "correlation"
+  | "spearman"
+  | "pearson"
+  | "agreement"
+  | "sample-size"
+  | "p-values"
+  | "fdr"
+  | "confidence-interval"
+  | "sector-weighting"
+  | "scatterplots"
+  | "limitations"
+  | "relationship-labels";
+
+export const METHODOLOGY_HREF: Record<MethodologyTopic, string> = {
+  "research-question": "/methodology#research-question",
+  data: "/methodology#data",
+  mda: "/methodology#mda",
+  finbert: "/methodology#finbert",
+  "sentiment-score": "/methodology#sentiment-score",
+  "financial-data": "/methodology#financial-data",
+  xbrl: "/methodology#xbrl",
+  "period-matching": "/methodology#period-matching",
+  correlation: "/methodology#correlation",
+  spearman: "/methodology#spearman",
+  pearson: "/methodology#pearson",
+  agreement: "/methodology#agreement",
+  "sample-size": "/methodology#sample-size",
+  "p-values": "/methodology#p-values",
+  fdr: "/methodology#fdr",
+  "confidence-interval": "/methodology#confidence-interval",
+  "sector-weighting": "/methodology#sector-weighting",
+  scatterplots: "/methodology#scatterplots",
+  limitations: "/methodology#limitations",
+  "relationship-labels": "/methodology#relationship-labels",
+};

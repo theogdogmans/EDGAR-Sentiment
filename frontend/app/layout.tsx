@@ -16,7 +16,7 @@ const serif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "edgar-sentiment",
   description:
-    "Contemporaneous association between S&P 500 MD&A tone and same-filing YoY net income (10-Q primary). Not a forecast.",
+    "Does management MD&A tone move with the same period's earnings? S&P 500 contemporaneous analysis — not a forecast.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -28,12 +28,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link className="wordmark" href="/">
               edgar-<span>sentiment</span>
             </Link>
-            <nav className="nav">
-              <Link href="/">Rankings</Link>
+            <nav className="nav" aria-label="Main">
+              <Link href="/">Overview</Link>
+              <Link href="/#companies">Companies</Link>
+              <Link href="/industries">Industries</Link>
               <Link href="/methodology">Methodology</Link>
+              <Link href="/about">About</Link>
             </nav>
           </header>
           {children}
+          <footer className="site-footer">
+            <p>
+              Contemporaneous research presentation — not predictive.{" "}
+              <Link href="/methodology">How this works</Link>
+              {" · "}
+              <Link href="/about">About</Link>
+            </p>
+          </footer>
         </div>
       </body>
     </html>

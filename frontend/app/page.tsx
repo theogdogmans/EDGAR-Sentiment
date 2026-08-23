@@ -1,4 +1,6 @@
+import Link from "next/link";
 import CompanyBrowser from "@/components/CompanyBrowser";
+import MethodologyLink from "@/components/MethodologyLink";
 import { CaseStudyCards, CompanyRankTable, SectorRankTable } from "@/components/RankTables";
 import { loadSiteData } from "@/lib/data";
 import { isDefaultEligible, isFdrSignificant, sortCompanies } from "@/lib/phase5";
@@ -27,8 +29,7 @@ function bySectorSpearman(rows: SectorStat[], dir: "desc" | "asc") {
 }
 
 export default async function HomePage() {
-  const { companies: companyRows, sectors: sectorRows, preload: status, source } =
-    await loadSiteData();
+  const { companies: companyRows, sectors: sectorRows, source } = await loadSiteData();
 
   const mostSectors = bySectorSpearman(sectorRows, "desc").slice(0, 5);
   const leastSectors = bySectorSpearman(sectorRows, "asc").slice(0, 5);
@@ -39,82 +40,129 @@ export default async function HomePage() {
   const ready = companyRows.filter(isDefaultEligible).length;
   const fdrN = companyRows.filter(isFdrSignificant).length;
   const analyzed = companyRows.reduce((n, c) => n + (c.n_filings || 0), 0);
-  const empty = companyRows.length === 0;
 
   return (
     <>
       <section className="hero">
-        <div className="kicker">S&amp;P 500 · 10-Q MD&amp;A vs Net Income YoY</div>
+        <div className="kicker">S&amp;P 500 accounting · language research</div>
         <h1>Does the tone match the numbers?</h1>
         <p className="lede">
-          Contemporaneous association between FinBERT-scored MD&amp;A tone and same-filing YoY
-          net income. Primary company analysis is <strong>10-Q only</strong> (n≥8 public board,
-          Spearman first). Most companies show weak-to-modest relationships; a minority are
-          stronger and more consistent. Not a forecast.
+          I analyzed {analyzed.toLocaleString()} S&amp;P 500 10-K and 10-Q filings to see whether
+          the tone of management&apos;s MD&amp;A moves with changes in company performance. This is
+          a contemporaneous comparison — not a forecast.
         </p>
       </section>
 
-      <div className="panel">
-        <div className="kicker">{source === "phase5_preview" ? "Preview data" : "Published cache"}</div>
-        <p style={{ margin: "8px 0 12px" }}>
-          {status?.running
-            ? status.message || "Worker running…"
-            : status?.message ||
-              (empty
-                ? "Waiting for aggregates."
-                : source === "phase5_preview"
-                  ? "Loaded Phase 5A local preview payload."
-                  : "Published aggregates loaded from Supabase.")}
+      <section className="panel pipeline" aria-label="Analysis pipeline">
+        <h2>How the analysis works</h2>
+        <ol className="pipeline-steps">
+          <li>
+            <strong>SEC filing</strong>
+            <span>Pull each company&apos;s 10-K and 10-Q.</span>
+          </li>
+          <li>
+            <strong>MD&amp;A section</strong>
+            <span>Focus on where management explains company performance.</span>
+          </li>
+          <li>
+            <strong>Measure tone</strong>
+            <span>
+              Use a finance-trained language model to estimate whether the language is positive,
+              neutral, or negative.
+            </span>
+          </li>
+          <li>
+            <strong>Financial results</strong>
+            <span>Match the filing to the correct quarterly net income and revenue figures.</span>
+          </li>
+          <li>
+            <strong>Compare</strong>
+            <span>
+              Test whether changes in management tone move with changes in financial performance.
+            </span>
+          </li>
+        </ol>
+        <p className="pipeline-foot">
+          <Link href="/methodology">See full methodology →</Link>
         </p>
-        <div className="progress">
-          <div
-            className="progress-bar"
-            style={{
-              width: `${Math.min(
-                100,
-                ready && companyRows.length
-                  ? Math.round((ready / Math.max(companyRows.length, 1)) * 100)
-                  : 0
-              )}%`,
-            }}
-          />
-        </div>
-        <p className="note">
-          {ready} companies on default board (n≥8) · {analyzed} filings in rollup · {fdrN} with
-          FDR q&lt;.05
-          {status?.current ? ` · last ${status.current}` : ""}
-        </p>
-      </div>
+      </section>
 
-      <div className="stats">
-        <div className="stat">
-          <div className="label">Sectors</div>
-          <div className="value">{sectorRows.length || "—"}</div>
+      <section className="panel findings" aria-labelledby="findings-heading">
+        <h2 id="findings-heading">What did the analysis find?</h2>
+        <p className="findings-lede">
+          Across the S&amp;P 500, management tone usually had only a weak-to-moderate relationship
+          with quarterly earnings. A smaller group of companies showed stronger and more consistent
+          relationships.
+        </p>
+        <div className="stats findings-stats">
+          <div className="stat">
+            <div className="value">{analyzed.toLocaleString()}</div>
+            <div className="label">Filings analyzed</div>
+          </div>
+          <div className="stat">
+            <div className="value">{ready.toLocaleString()}</div>
+            <div className="label">Companies with enough quarterly observations for the main comparison</div>
+          </div>
+          <div className="stat">
+            <div className="value">{fdrN.toLocaleString()}</div>
+            <div className="label">
+              Companies whose relationship remained statistically notable after adjusting for
+              hundreds of tests
+            </div>
+            <MethodologyLink topic="fdr" className="meth-link block-link">
+              Why only {fdrN}? →
+            </MethodologyLink>
+          </div>
         </div>
-        <div className="stat">
-          <div className="label">Companies</div>
-          <div className="value">{companyRows.length || "—"}</div>
+        {source === "phase5_preview" ? (
+          <p className="note">Preview data — not the live Supabase publish.</p>
+        ) : null}
+      </section>
+
+      <section className="panel howto" aria-labelledby="howto-heading">
+        <h2 id="howto-heading">How to read this site</h2>
+        <div className="howto-grid">
+          <article className="howto-card">
+            <h3>Tone</h3>
+            <p>How positive or negative management&apos;s MD&amp;A language is.</p>
+            <MethodologyLink topic="sentiment-score">Learn more →</MethodologyLink>
+          </article>
+          <article className="howto-card">
+            <h3>Earnings change</h3>
+            <p>How net income changed compared with the same quarter one year earlier.</p>
+            <MethodologyLink topic="financial-data">Learn more →</MethodologyLink>
+          </article>
+          <article className="howto-card">
+            <h3>Relationship</h3>
+            <p>Whether more positive language tends to occur alongside stronger earnings.</p>
+            <MethodologyLink topic="correlation">Learn more →</MethodologyLink>
+          </article>
+          <article className="howto-card">
+            <h3>Agreement</h3>
+            <p>How often tone and earnings simply moved in the same direction.</p>
+            <MethodologyLink topic="agreement">Learn more →</MethodologyLink>
+          </article>
+          <article className="howto-card">
+            <h3>Statistical check</h3>
+            <p>
+              Whether the relationship still stands out after accounting for the hundreds of
+              companies tested.
+            </p>
+            <MethodologyLink topic="fdr">Learn more →</MethodologyLink>
+          </article>
         </div>
-        <div className="stat">
-          <div className="label">Filings scored</div>
-          <div className="value">{analyzed || "—"}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Board (n≥8)</div>
-          <div className="value">{ready || "—"}</div>
-        </div>
-      </div>
+      </section>
 
       <CaseStudyCards companies={companyRows} />
 
       <div className="rank-grid">
         <SectorRankTable
-          title="Highest sector ρ (filing-weighted)"
+          title="Industries with stronger filing-level relationships"
           rows={mostSectors}
           empty="No sector associations yet."
         />
         <SectorRankTable
-          title="Lowest sector ρ (filing-weighted)"
+          title="Industries with weaker filing-level relationships"
           rows={leastSectors}
           empty="No sector associations yet."
         />
@@ -122,12 +170,12 @@ export default async function HomePage() {
 
       <div className="rank-grid">
         <CompanyRankTable
-          title="Highest Spearman ρ (n≥8)"
+          title="Strongest positive relationships"
           rows={mostCompanies}
           empty="No eligible companies yet."
         />
         <CompanyRankTable
-          title="Lowest Spearman ρ (n≥8)"
+          title="Strongest negative relationships"
           rows={leastCompanies}
           empty="No eligible companies yet."
         />

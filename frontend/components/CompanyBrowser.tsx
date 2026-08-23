@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { fmtAgreePct, fmtQ, fmtR, toneClass } from "@/lib/format";
+import FdrBadge from "@/components/FdrBadge";
+import MethodologyLink from "@/components/MethodologyLink";
+import { fmtR } from "@/lib/format";
+import {
+  observationsPhrase,
+  relationshipFromRho,
+} from "@/lib/explain";
 import {
   filterCompanies,
   isDefaultEligible,
@@ -36,11 +42,12 @@ export default function CompanyBrowser({ companies }: { companies: CompanyStat[]
   }, [companies, query, sort, filter, showLimited]);
 
   return (
-    <div className="panel">
+    <div className="panel" id="companies">
       <h2>Company leaderboard</h2>
       <p className="hint">
-        Primary analysis: <strong>10-Q MD&amp;A tone vs Net Income YoY</strong>. Default board
-        requires n≥8. Sorted by Spearman ρ first. Not predictive.
+        Each row answers: for this company, does quarterly management tone tend to move with
+        quarterly net income? Default board requires at least 8 quarterly observations.{" "}
+        <MethodologyLink topic="sample-size">Why sample size matters →</MethodologyLink>
       </p>
       <div className="leaderboard-controls">
         <form className="search" onSubmit={(e) => e.preventDefault()}>
@@ -54,21 +61,21 @@ export default function CompanyBrowser({ companies }: { companies: CompanyStat[]
         <label>
           Sort{" "}
           <select value={sort} onChange={(e) => setSort(e.target.value as LeaderboardSort)}>
-            <option value="spearman">Spearman ρ</option>
-            <option value="pearson">Pearson r</option>
-            <option value="agreement">Agreement</option>
-            <option value="n">n</option>
-            <option value="q">FDR q</option>
+            <option value="spearman">Relationship (Spearman)</option>
+            <option value="pearson">Straight-line (Pearson)</option>
+            <option value="agreement">Direction agreement</option>
+            <option value="n">Sample size</option>
+            <option value="q">Multiple-testing q</option>
           </select>
         </label>
         <label>
           Filter{" "}
           <select value={filter} onChange={(e) => setFilter(e.target.value as LeaderboardFilter)}>
-            <option value="all">All (n≥8)</option>
-            <option value="fdr">FDR q&lt;.05</option>
-            <option value="positive">Positive ρ</option>
-            <option value="negative">Negative ρ</option>
-            <option value="high_agreement">High agreement</option>
+            <option value="all">All (enough observations)</option>
+            <option value="fdr">Survives multiple-testing adjustment</option>
+            <option value="positive">Positive relationship</option>
+            <option value="negative">Negative relationship</option>
+            <option value="high_agreement">High direction agreement</option>
           </select>
         </label>
         <label className="check">
@@ -77,52 +84,54 @@ export default function CompanyBrowser({ companies }: { companies: CompanyStat[]
             checked={showLimited}
             onChange={(e) => setShowLimited(e.target.checked)}
           />{" "}
-          Include limited sample (n=6–7)
+          Include limited sample (6–7 quarters)
         </label>
       </div>
       <p className="note">{board.length} companies on board</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Ticker</th>
-            <th>Company</th>
-            <th>Sector</th>
-            <th>ρ</th>
-            <th>r</th>
-            <th>Agree</th>
-            <th>n</th>
-            <th>q</th>
-          </tr>
-        </thead>
-        <tbody>
-          {board.map((row) => {
-            const ni = ni10q(row);
-            return (
-              <tr key={row.ticker} className="row-link">
-                <td>
-                  <Link href={`/company/${row.ticker}`}>{row.display || row.ticker}</Link>
-                  {isFdrSignificant(row) ? <span className="badge-fdr"> FDR</span> : null}
-                </td>
-                <td>{row.name}</td>
-                <td>
-                  {row.sector ? (
-                    <Link href={`/industries/${sectorSlug(row.sector)}`}>{row.sector}</Link>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className={toneClass(ni.spearman_rho)}>{fmtR(ni.spearman_rho)}</td>
-                <td className={toneClass(ni.pearson_r)}>{fmtR(ni.pearson_r)}</td>
-                <td>
-                  {ni.agree_label ?? (ni.agree_pct != null ? fmtAgreePct(ni.agree_pct) : "—")}
-                </td>
-                <td>{ni.n || "—"}</td>
-                <td>{fmtQ(ni.fdr_q)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="table-scroll">
+        <table className="company-rank-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Industry</th>
+              <th>Relationship</th>
+              <th>Sample</th>
+              <th>Numbers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {board.map((row) => {
+              const ni = ni10q(row);
+              const label = relationshipFromRho(ni.spearman_rho);
+              return (
+                <tr key={row.ticker} className="row-link">
+                  <td>
+                    <Link href={`/company/${row.ticker}`}>{row.display || row.ticker}</Link>
+                    <div className="muted tiny">{row.name}</div>
+                    {isFdrSignificant(row) ? <FdrBadge active compact /> : null}
+                  </td>
+                  <td>
+                    {row.sector ? (
+                      <Link href={`/industries/${sectorSlug(row.sector)}`}>{row.sector}</Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    <div className={`rel-label ${label.tone}`}>{label.short}</div>
+                  </td>
+                  <td>{observationsPhrase(ni.n)}</td>
+                  <td className="muted tiny">
+                    Spearman {fmtR(ni.spearman_rho)}
+                    <br />
+                    Pearson {fmtR(ni.pearson_r)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -32,14 +32,21 @@ export function fmtMoney(value: number | null | undefined, unit?: string): strin
   return `${sign}${prefix}${abs.toFixed(0)}`;
 }
 
+/** Public display rounding (0.85). Underlying data stays full precision. */
 export function fmtR(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "n/a";
-  return value.toFixed(3);
+  return value.toFixed(2);
 }
 
 export function fmtQ(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   if (value < 0.001) return value.toExponential(2);
+  return value.toFixed(3);
+}
+
+/** Exact / more digits for collapsible statistical details. */
+export function fmtRExact(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "n/a";
   return value.toFixed(3);
 }
 

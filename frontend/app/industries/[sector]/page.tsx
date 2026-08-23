@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import FdrBadge from "@/components/FdrBadge";
+import MethodologyLink from "@/components/MethodologyLink";
 import SentimentScatter from "@/components/SentimentScatter";
 import { loadSiteData } from "@/lib/data";
-import { fmtPct, fmtR, fmtScore, toneClass } from "@/lib/format";
+import {
+  observationsPhrase,
+  relationshipFromRho,
+} from "@/lib/explain";
+import { fmtR, toneClass } from "@/lib/format";
 import { formIs10Q, isFdrSignificant, ni10q, sortCompanies } from "@/lib/phase5";
 import { findSectorBySlug, sectorSlug } from "@/lib/sector";
 
@@ -26,6 +32,8 @@ export default async function IndustryPage({
   const cbR = match.cb_pearson_r_10q_ni ?? p10?.company_balanced_pearson_r ?? null;
   const cbN = match.cb_n_companies_10q_ni ?? p10?.company_balanced_n_companies ?? null;
   const revOk = match.revenue_comparable !== false;
+  const fwLabel = relationshipFromRho(fwRho);
+  const cbLabel = relationshipFromRho(cbR);
 
   const members = sortCompanies(
     companies.filter((c) => c.sector === match.sector),
@@ -46,56 +54,58 @@ export default async function IndustryPage({
   return (
     <>
       <p className="back">
-        <Link href="/">← Rankings</Link>
+        <Link href="/">← Overview</Link>
       </p>
       <section className="hero">
-        <div className="kicker">Industry · 10-Q NI</div>
+        <div className="kicker">Industry</div>
         <h1>{match.sector}</h1>
         <p className="lede">
-          Dual-weight view of contemporaneous MD&amp;A tone vs YoY net income across{" "}
-          {match.n_companies} companies ({match.n_filings} scored filings). Filing-weighted and
-          company-balanced results can differ — neither alone is the full story.
+          Across {match.n_companies} companies ({match.n_filings} scored filings), does management
+          tone tend to move with quarterly earnings? Two complementary views are shown below.
         </p>
       </section>
 
-      <div className="stats">
-        <div className="stat">
-          <div className="label">FW Spearman ρ</div>
-          <div className={`value ${toneClass(fwRho)}`}>{fmtR(fwRho)}</div>
+      <div className="panel dual-weight">
+        <h2>Two ways to read this industry</h2>
+        <div className="dual-grid">
+          <article>
+            <h3>Does the typical filing show a relationship?</h3>
+            <div className={`rel-label lg ${fwLabel.tone}`}>{fwLabel.short}</div>
+            <p className="muted tiny">
+              Filing-weighted · Spearman {fmtR(fwRho)} · {observationsPhrase(fwN)}
+            </p>
+          </article>
+          <article>
+            <h3>Does the typical company show a relationship?</h3>
+            <div className={`rel-label lg ${cbLabel.tone}`}>{cbLabel.short}</div>
+            <p className="muted tiny">
+              Company-balanced · Pearson {fmtR(cbR)}
+              {cbN != null ? ` · ${cbN} companies` : ""}
+            </p>
+          </article>
         </div>
-        <div className="stat">
-          <div className="label">FW Pearson r</div>
-          <div className={`value ${toneClass(fwR)}`}>{fmtR(fwR)}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Company-balanced r</div>
-          <div className={`value ${toneClass(cbR)}`}>{fmtR(cbR)}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Filings / cos.</div>
-          <div className="value">
-            {fwN || "—"}
-            <span className="muted" style={{ fontSize: "0.45em", display: "block" }}>
-              {cbN != null ? `${cbN} balanced` : ""}
-            </span>
-          </div>
-        </div>
+        <p className="hint">
+          These views can differ when a few large filers dominate.{" "}
+          <MethodologyLink topic="sector-weighting">Why are these different? →</MethodologyLink>
+        </p>
       </div>
 
-      <div className="panel">
-        <h2>Weighting detail</h2>
-        <table>
+      <details className="panel">
+        <summary>
+          <strong>Technical sector measures</strong>
+        </summary>
+        <table style={{ marginTop: 12 }}>
           <tbody>
-            <tr>
-              <th>Filing-weighted Pearson</th>
-              <td className={toneClass(fwR)}>{fmtR(fwR)}</td>
-            </tr>
             <tr>
               <th>Filing-weighted Spearman</th>
               <td className={toneClass(fwRho)}>{fmtR(fwRho)}</td>
             </tr>
             <tr>
-              <th>Winsorized Pearson (n≥20)</th>
+              <th>Filing-weighted Pearson</th>
+              <td className={toneClass(fwR)}>{fmtR(fwR)}</td>
+            </tr>
+            <tr>
+              <th>Winsorized Pearson (when n≥20)</th>
               <td className={toneClass(fwW)}>{fmtR(fwW)}</td>
             </tr>
             <tr>
@@ -106,56 +116,64 @@ export default async function IndustryPage({
               <th>Revenue</th>
               <td>
                 {revOk
-                  ? "Comparable revenue associations available as secondary."
+                  ? "Comparable revenue associations available as secondary on company pages."
                   : "Revenue comparison not used due to cross-company concept comparability."}
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
+      </details>
 
       <div className="panel">
-        <h2>10-Q scatter (filing-weighted pool)</h2>
-        <p className="hint">Each point is one 10-Q filing. n = {fwN || "—"}.</p>
+        <h2>Quarterly filings in this industry</h2>
+        <p className="hint">
+          Each dot is one 10-Q.{" "}
+          <MethodologyLink topic="scatterplots">How to read this chart →</MethodologyLink>
+        </p>
         <SentimentScatter points={scatter} />
       </div>
 
       <div className="panel">
         <h2>Companies in {match.sector}</h2>
         <p className="hint">
-          Default-eligible members sorted by company 10-Q Spearman ρ (n≥8). Limited-sample names
-          appear on company pages only.
+          Members with enough quarterly observations, sorted by company-level relationship strength.
         </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Ticker</th>
-              <th>Name</th>
-              <th>ρ</th>
-              <th>r</th>
-              <th>n</th>
-              <th>Agree</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((c) => {
-              const ni = ni10q(c);
-              return (
-                <tr key={c.ticker} className="row-link">
-                  <td>
-                    <Link href={`/company/${c.ticker}`}>{c.display || c.ticker}</Link>
-                    {isFdrSignificant(c) ? <span className="badge-fdr"> FDR</span> : null}
-                  </td>
-                  <td>{c.name}</td>
-                  <td className={toneClass(ni.spearman_rho)}>{fmtR(ni.spearman_rho)}</td>
-                  <td className={toneClass(ni.pearson_r)}>{fmtR(ni.pearson_r)}</td>
-                  <td>{ni.n || "—"}</td>
-                  <td>{ni.agree_label ?? "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="table-scroll">
+          <table className="company-rank-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Relationship</th>
+                <th>Sample</th>
+                <th>Numbers</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((c) => {
+                const ni = ni10q(c);
+                const label = relationshipFromRho(ni.spearman_rho);
+                return (
+                  <tr key={c.ticker} className="row-link">
+                    <td>
+                      <Link href={`/company/${c.ticker}`}>{c.display || c.ticker}</Link>
+                      <div className="muted tiny">{c.name}</div>
+                      {isFdrSignificant(c) ? <FdrBadge active compact /> : null}
+                    </td>
+                    <td>
+                      <div className={`rel-label ${label.tone}`}>{label.short}</div>
+                    </td>
+                    <td>{observationsPhrase(ni.n)}</td>
+                    <td className="muted tiny">
+                      Spearman {fmtR(ni.spearman_rho)}
+                      <br />
+                      Pearson {fmtR(ni.pearson_r)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <p className="note">
