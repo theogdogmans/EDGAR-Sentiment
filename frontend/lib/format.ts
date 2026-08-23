@@ -5,6 +5,12 @@ export function fmtPct(value: number | null | undefined): string {
   return `${sign}${pct.toFixed(1)}%`;
 }
 
+/** agreement_pct is already 0–100 in Phase 5A payload */
+export function fmtAgreePct(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return `${value.toFixed(0)}%`;
+}
+
 export function fmtScore(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const sign = value > 0 ? "+" : "";
@@ -28,7 +34,18 @@ export function fmtMoney(value: number | null | undefined, unit?: string): strin
 
 export function fmtR(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "n/a";
-  return value.toFixed(2);
+  return value.toFixed(3);
+}
+
+export function fmtQ(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (value < 0.001) return value.toExponential(2);
+  return value.toFixed(3);
+}
+
+export function fmtCI(lo: number | null | undefined, hi: number | null | undefined): string {
+  if (lo == null || hi == null) return "—";
+  return `[${lo.toFixed(2)}, ${hi.toFixed(2)}]`;
 }
 
 export function toneClass(value: number | null | undefined): string {

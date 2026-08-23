@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { loadExampleFiling } from "@/lib/data";
 import { fmtMoney, fmtPct, fmtScore, toneClass } from "@/lib/format";
-import { createSupabaseClient } from "@/lib/supabase";
 import type { ExampleFiling } from "@/lib/types";
 
 export const revalidate = 3600;
@@ -20,12 +20,7 @@ export default async function FilingPage({
 }) {
   const { ticker: rawTicker, accession } = await params;
   const ticker = rawTicker.toUpperCase();
-  const supabase = createSupabaseClient();
-  const { data: filing } = await supabase
-    .from("example_filings")
-    .select("*")
-    .eq("accession", accession)
-    .maybeSingle();
+  const filing = await loadExampleFiling(ticker, accession);
   if (!filing || filing.ticker !== ticker) notFound();
   const row = filing as ExampleFiling;
 

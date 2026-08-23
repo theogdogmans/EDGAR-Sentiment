@@ -12,6 +12,7 @@ from .compare.rollup import (
     latest_analyzed_accession,
     pick_featured_tickers,
 )
+from .phase5_payload import build_full_payload
 
 _client = None
 
@@ -208,7 +209,7 @@ def push_all(*, score_risk: bool = True) -> dict[str, int]:
         ex["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     # Replace example set so old heavy rows do not linger
-    client.table("example_filings").delete().not("accession", "is", null).execute()
+    _clear_example_filings(client)
     n_examples = _upsert_chunks(client, "example_filings", examples, size=20) if examples else 0
 
     set_preload_status(
@@ -227,6 +228,78 @@ def push_all(*, score_risk: bool = True) -> dict[str, int]:
         "companies": n_companies,
         "example_filings": n_examples,
     }
+
+
+def _clear_example_filings(client: Any) -> None:
+    """Delete all example_filings rows. Uses Python None-safe PostgREST filters."""
+    # Prefer neq on non-null PK; never use bare `null` (NameError) in Python.
+    client.table("example_filings").delete().neq("accession", "").execute()
+
+
+def push_phase5a(*, dry_run: bool = True) -> dict[str, Any]:
+    """Upload the Phase 5A production payload (Phase 4 fields retained).
+
+    Default dry_run=True refuses network writes. Call with dry_run=False only
+    after migration + explicit approval.
+    """
+    payload = build_full_payload()
+    companies = payload["companies"]
+    sectors = payload["sectors"]
+    examples = payload["example_filings"]
+
+    summary: dict[str, Any] = {
+        "mode": "phase5a",
+        "dry_run": dry_run,
+        "companies": len(companies),
+        "sectors": len(sectors),
+        "example_filings": len(examples),
+        "payload_version": payload["meta"]["payload_version"],
+        "uploaded": False,
+    }
+
+    if dry_run:
+        summary["message"] = "Dry run only — no Supabase write."
+        return summary
+
+    client = _supabase()
+    if client is None:
+        raise RuntimeError("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to sync.")
+
+    set_preload_status(
+        {
+            "running": True,
+            "stage": "phase5a_sync",
+            "message": "Uploading Phase 5A company / sector aggregates",
+            "coverage": db.coverage(),
+        }
+    )
+
+    n_companies = _upsert_chunks(client, "company_stats", companies, size=50)
+    n_sectors = _upsert_chunks(client, "sector_stats", sectors, size=20)
+    _clear_example_filings(client)
+    n_examples = _upsert_chunks(client, "example_filings", examples, size=20) if examples else 0
+
+    set_preload_status(
+        {
+            "running": False,
+            "stage": "done",
+            "message": (
+                f"Phase 5A synced {n_sectors} sectors, {n_companies} companies, "
+                f"{n_examples} example filings"
+            ),
+            "coverage": db.coverage(),
+        }
+    )
+    summary.update(
+        {
+            "uploaded": True,
+            "companies": n_companies,
+            "sectors": n_sectors,
+            "example_filings": n_examples,
+            "message": "Phase 5A upload complete.",
+        }
+    )
+    return summary
 
 
 # Back-compat no-ops: pipeline used to upsert every filing; industry-first path does not.

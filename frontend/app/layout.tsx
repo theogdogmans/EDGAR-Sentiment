@@ -16,7 +16,7 @@ const serif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "edgar-sentiment",
   description:
-    "Does MD&A tone in S&P 500 SEC filings match the numbers? Industry and company correlation explainer.",
+    "Contemporaneous association between S&P 500 MD&A tone and same-filing YoY net income (10-Q primary). Not a forecast.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

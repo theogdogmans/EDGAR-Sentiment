@@ -300,6 +300,93 @@ td {
 
 .back { color: var(--navy); font-size: 14px; }
 
+.badge-fdr {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--navy);
+  border: 1px solid var(--navy);
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: #eef3f8;
+}
+
+.case-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.case-card {
+  display: block;
+  border: 1px solid var(--rule);
+  padding: 12px 14px;
+  background: #fffdf8;
+}
+
+.case-card:hover {
+  border-color: var(--navy);
+  background: #f3eee4;
+}
+
+.case-ticker {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.case-stats {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.case-card p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.leaderboard-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.leaderboard-controls select {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  background: var(--card);
+}
+
+.leaderboard-controls .check {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.subhead {
+  font-size: 16px;
+  margin: 16px 0 8px;
+}
+
+details.panel > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details.panel > summary::-webkit-details-marker {
+  display: none;
+}
+
 @media (max-width: 800px) {
   .stats, .metrics-grid { grid-template-columns: 1fr 1fr; }
   .rank-grid { grid-template-columns: 1fr; }

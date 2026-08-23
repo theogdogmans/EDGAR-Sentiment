@@ -50,3 +50,11 @@ backend/data/phase4/*.db-shm
 backend/data/final/*.db
 backend/data/final/*.db-wal
 backend/data/final/*.db-shm
+
+# Phase 5A dry-run payload preview (JSON only; never commit DBs)
+!backend/data/phase5/
+!backend/data/phase5/**
+backend/data/phase5/**/*.db
+backend/data/phase5/**/*.db-wal
+backend/data/phase5/**/*.db-shm
+backend/data/phase5/production_backup/
