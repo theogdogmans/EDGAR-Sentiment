@@ -22,9 +22,16 @@ TABLES = ("company_stats", "sector_stats", "example_filings", "preload_status")
 
 def _client():
     url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        or os.getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
+        or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    )
     if not url or not key:
-        raise RuntimeError("Missing SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env")
+        raise RuntimeError(
+            "Missing Supabase URL/key. Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) "
+            "and SUPABASE_SERVICE_ROLE_KEY (or publishable/anon key for read-only backup)."
+        )
     from supabase import create_client
 
     return create_client(url, key)
