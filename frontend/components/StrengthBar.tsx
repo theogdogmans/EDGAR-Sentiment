@@ -1,6 +1,6 @@
 import { strengthBarWidth } from "@/lib/explain";
 
-/** Visual strength of |ρ| — not a percentage score. */
+/** Visual strength of |ρ|; not a percentage score. */
 export default function StrengthBar({
   rho,
   tone,

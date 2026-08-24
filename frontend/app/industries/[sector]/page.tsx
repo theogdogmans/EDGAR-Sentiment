@@ -69,7 +69,7 @@ export default async function IndustryPage({
           <div className={`rel-label display ${fwLabel.tone}`}>{fwLabel.short}</div>
           <StrengthBar rho={fwRho} tone={fwLabel.tone} />
           <p className="muted tiny">
-            Filing-weighted · Spearman {fmtR(fwRho)} · {observationsPhrase(fwN, "quarterly")}
+            Filing-weighted · strength {fmtR(fwRho)} · {observationsPhrase(fwN, "quarterly")}
           </p>
         </article>
         <article className="panel soft">
@@ -77,25 +77,25 @@ export default async function IndustryPage({
           <div className={`rel-label display ${cbLabel.tone}`}>{cbLabel.short}</div>
           <StrengthBar rho={cbR} tone={cbLabel.tone} />
           <p className="muted tiny">
-            Company-balanced · Pearson {fmtR(cbR)}
+            Company-balanced · straight-line {fmtR(cbR)}
             {cbN != null ? ` · ${cbN} companies` : ""}
           </p>
         </article>
       </div>
       <p className="hint open-hint">
-        These differ because companies with more filings receive more weight in the filing-level
-        calculation.{" "}
-        <MethodologyLink topic="sector-weighting">Why are these different? →</MethodologyLink>
+        The filing-weighted result gives more influence to companies with more filings. The
+        company-balanced result gives each company equal weight.{" "}
+        <MethodologyLink topic="sector-weighting">Why are these different?</MethodologyLink>
       </p>
 
       {!revOk ? (
         <div className="empty-state panel soft">
           <strong>Revenue comparison not used</strong>
           <p>
-            Revenue-like concepts are not comparable enough across companies in this sector for the
-            primary analysis.
+            Revenue comparison is not used for this industry because companies report revenue-like
+            concepts differently.
           </p>
-          <MethodologyLink topic="financial-data">Why? →</MethodologyLink>
+          <MethodologyLink topic="financial-data">Why?</MethodologyLink>
         </div>
       ) : null}
 
@@ -128,8 +128,8 @@ export default async function IndustryPage({
       <div className="panel soft chart-panel">
         <h2>Quarterly filings in this industry</h2>
         <p className="hint">
-          Each dot is one 10-Q.{" "}
-          <MethodologyLink topic="scatterplots">How to read this chart →</MethodologyLink>
+          Each dot represents one 10-Q filing.{" "}
+          <MethodologyLink topic="scatterplots">How to read this chart</MethodologyLink>
         </p>
         <SentimentScatter points={scatter} />
       </div>
@@ -158,7 +158,7 @@ export default async function IndustryPage({
                     </td>
                     <td>
                       <div className={`rel-label ${label.tone}`}>{label.short}</div>
-                      <div className="muted tiny">Spearman {fmtR(ni.spearman_rho)}</div>
+                      <div className="muted tiny">Strength {fmtR(ni.spearman_rho)}</div>
                     </td>
                     <td>{observationsPhrase(ni.n)}</td>
                   </tr>

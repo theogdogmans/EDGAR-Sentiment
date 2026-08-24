@@ -2,7 +2,7 @@
 
 type Point = { sentiment: number; income: number };
 
-/** Tiny scatter preview for case-study cards — no axes, pattern only. */
+/** Tiny scatter preview for case-study cards; no axes, pattern only. */
 export default function MiniScatter({ points }: { points: Point[] }) {
   if (!points.length) return <div className="mini-scatter empty" aria-hidden="true" />;
 

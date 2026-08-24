@@ -66,13 +66,13 @@ export default async function FilingPage({
         </div>
         <div className="stat">
           <div className="label">Sentences scored</div>
-          <div className="value">{row.sentence_count ?? "—"}</div>
+          <div className="value">{row.sentence_count ?? "n/a"}</div>
         </div>
         <div className="stat">
           <div className="label">Income agreement</div>
           <div className="value">
             {row.agreement?.net_income == null
-              ? "—"
+              ? "n/a"
               : row.agreement.net_income
                 ? "Yes"
                 : "No"}
@@ -84,8 +84,8 @@ export default async function FilingPage({
         <div className="panel">
           <h2>Section bias: MD&amp;A vs Item 1A</h2>
           <p className="hint">
-            Risk Factors are legally conservative. Expect a more negative FinBERT score than MD&amp;A
-            on the same 10-K.
+            Risk Factors are legally conservative. The tone score for Item 1A is often more negative
+            than the MD&amp;A score on the same 10-K.
           </p>
           <div className="stats">
             <div className="stat">
@@ -118,7 +118,7 @@ export default async function FilingPage({
             </div>
             <div className="stat">
               <div className="label">1A sentences</div>
-              <div className="value">{row.risk_sentence_count ?? "—"}</div>
+              <div className="value">{row.risk_sentence_count ?? "n/a"}</div>
             </div>
           </div>
         </div>
@@ -148,7 +148,7 @@ export default async function FilingPage({
 
       <div className="panel">
         <h2>MD&amp;A sentences</h2>
-        <p className="hint">Green is FinBERT-positive, red is negative.</p>
+        <p className="hint">Green marks more positive language; red marks more negative language.</p>
         {!sentences.length ? (
           <p className="muted">No sentence highlights for this example.</p>
         ) : (
@@ -166,7 +166,7 @@ export default async function FilingPage({
       {riskSentences.length ? (
         <div className="panel">
           <h2>Item 1A sentences</h2>
-          <p className="hint">Same model, different section — usually more negative.</p>
+          <p className="hint">Same model, different section. Usually more negative.</p>
           {riskSentences.map((s, i) => (
             <div className={`sentence ${s.label}`} key={i}>
               <div className="meta">

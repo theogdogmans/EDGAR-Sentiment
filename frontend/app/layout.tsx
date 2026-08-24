@@ -18,15 +18,15 @@ const siteUrl = "https://www.edgarsentiment.site";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "EDGAR Sentiment — Does the Tone Match the Numbers?",
+    default: "EDGAR Sentiment | Does the Tone Match the Numbers?",
     template: "%s · EDGAR Sentiment",
   },
   description:
-    "An analysis of 9,697 S&P 500 SEC filings comparing management's MD&A tone with quarterly financial performance. Exploratory research — not investment advice.",
+    "An analysis of 9,697 S&P 500 SEC filings comparing management's MD&A tone with changes in financial performance. Exploratory research, not investment advice.",
   openGraph: {
-    title: "EDGAR Sentiment — Does the Tone Match the Numbers?",
+    title: "EDGAR Sentiment | Does the Tone Match the Numbers?",
     description:
-      "An analysis of 9,697 S&P 500 SEC filings comparing management's MD&A tone with quarterly financial performance.",
+      "An analysis of 9,697 S&P 500 SEC filings comparing management's MD&A tone with changes in financial performance.",
     url: "/",
     siteName: "EDGAR Sentiment",
     images: [
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
         url: "/og-linkedin-v2.png",
         width: 1200,
         height: 627,
-        alt: "Does the tone match the numbers?",
+        alt: "Scatterplot of MD&A tone versus quarterly earnings across S&P 500 filings",
       },
     ],
     locale: "en_US",
@@ -42,9 +42,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "EDGAR Sentiment — Does the Tone Match the Numbers?",
+    title: "EDGAR Sentiment | Does the Tone Match the Numbers?",
     description:
-      "9,697 S&P 500 SEC filings: MD&A tone vs quarterly financial performance.",
+      "An analysis of 9,697 S&P 500 SEC filings comparing management's MD&A tone with changes in financial performance.",
     images: ["/og-linkedin-v2.png"],
   },
   icons: {
@@ -86,8 +86,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </a>
             </div>
             <p className="footer-note">
-              Exploratory accounting/data analysis. Not investment advice. Contemporaneous
-              association only — not prediction or causation.
+              Exploratory accounting and data analysis. Not investment advice. The analysis measures
+              a same-filing relationship, not prediction or causation.
             </p>
           </footer>
         </div>

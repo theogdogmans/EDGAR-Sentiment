@@ -1,6 +1,6 @@
 /**
  * Plain-English labels and copy helpers for Phase 6 clarity redesign.
- * Does not change underlying statistics — presentation only.
+ * Does not change underlying statistics; presentation only.
  */
 
 export type RelationshipBand =
@@ -27,14 +27,14 @@ export function relationshipFromRho(rho: number | null | undefined): Relationshi
   if (rho >= 0.7) return { band: "strong_positive", short: "Strong positive", tone: "pos" };
   if (rho >= 0.4) return { band: "moderate_positive", short: "Moderate positive", tone: "pos" };
   if (rho >= 0.2) return { band: "weak_positive", short: "Weak positive", tone: "pos" };
-  if (rho > -0.2) return { band: "little", short: "Little / no relationship", tone: "neutral" };
+  if (rho > -0.2) return { band: "little", short: "Little or no relationship", tone: "neutral" };
   if (rho > -0.4) return { band: "weak_negative", short: "Weak negative", tone: "neg" };
   if (rho > -0.7) return { band: "moderate_negative", short: "Moderate negative", tone: "neg" };
   return { band: "strong_negative", short: "Strong negative", tone: "neg" };
 }
 
 export function sampleSizeLabel(n: number | null | undefined): string {
-  if (n == null || n <= 0) return "Sample size unavailable";
+  if (n == null || n <= 0) return "Sample size not available";
   if (n >= 10) return "More established sample";
   if (n >= 8) return "Usable sample";
   if (n >= 6) return "Limited sample";
@@ -51,7 +51,7 @@ export function observationsPhrase(
   return `${n} ${unit} observations`;
 }
 
-/** Map Spearman ρ to 0–1 for a restrained strength bar (not a percentage score). */
+/** Map Spearman ρ to 0-1 for a restrained strength bar (not a percentage score). */
 export function strengthBarWidth(rho: number | null | undefined): number {
   if (rho == null || Number.isNaN(rho)) return 0;
   return Math.min(1, Math.abs(rho));
@@ -65,7 +65,7 @@ export function agreementSentence(
   if (num === den) {
     return `Tone and earnings moved in the same direction in all ${den} comparable quarters.`;
   }
-  return `Tone and earnings moved in the same direction in ${num} of ${den} non-neutral quarters.`;
+  return `Tone and earnings moved in the same direction in ${num} of ${den} comparable quarters.`;
 }
 
 export function companyTakeaway(
@@ -85,35 +85,38 @@ export function companyTakeaway(
     case "strong_negative":
     case "moderate_negative":
     case "weak_negative":
-      base = `${who}'s management tone and quarterly net income often moved in opposite directions.`;
+      base = `${who} showed a negative relationship between management tone and quarterly net income.`;
       break;
     case "little":
-      base = `${who} shows little systematic relationship between management tone and quarterly net income.`;
+      base = `${who} showed little relationship between MD&A tone and quarterly net income.`;
       break;
     default:
-      base = `${who}: not enough data to summarize the tone–earnings relationship.`;
+      base = `${who}: not enough data to summarize the tone and earnings relationship.`;
   }
   if (fdr && label.tone !== "neutral") {
-    return `${base} This relationship remains notable after adjusting for hundreds of company tests.`;
+    return `${base} This relationship remained statistically notable after the multiple-testing adjustment.`;
   }
   return base;
 }
 
 export const TERM_DEFS: Record<string, string> = {
-  mda: "Management's Discussion and Analysis — the section where management explains company performance, trends, and risks.",
+  mda: "Management's Discussion and Analysis, or MD&A, is the section where management explains company performance, trends, and risks.",
   finbert:
-    "A language model trained for financial text that estimates whether a sentence is positive, neutral, or negative.",
+    "FinBERT is a language model trained for financial text. It estimates whether a sentence is positive, neutral, or negative.",
   spearman:
-    "Measures whether higher tone generally goes with higher financial performance, without letting extreme earnings swings dominate.",
-  pearson: "Measures the strength of a straight-line relationship between tone and earnings changes.",
-  fdr: "Adjusts statistical evidence because hundreds of companies are being tested at once.",
-  yoy: "Year over year — compared with the same quarter one year earlier.",
-  xbrl: "Structured financial data reported to the SEC.",
+    "Spearman measures whether more positive tone generally appears alongside stronger financial performance. It focuses on direction and is less affected by unusually large earnings changes.",
+  pearson:
+    "Pearson measures the strength of a straight-line relationship. It is more sensitive than Spearman to unusually large changes in earnings.",
+  fdr: "When hundreds of companies are tested, some can appear statistically notable by chance. False Discovery Rate, or FDR, adjusts for that problem.",
+  yoy: "Year over year: compared with the same quarter one year earlier.",
+  xbrl: "XBRL is structured financial data reported to the SEC.",
   agreement:
     "How often tone and earnings moved in the same direction, after excluding near-neutral cases.",
   "sample-size": "How many comparable quarterly filings enter the company relationship estimate.",
-  "filing-weighted": "Pools every filing in the sector — answers what a typical filing looks like.",
-  "company-balanced": "Gives each company equal weight — answers what a typical company looks like.",
+  "filing-weighted":
+    "The filing-weighted result gives more influence to companies with more filings. It answers what a typical filing looks like.",
+  "company-balanced":
+    "The company-balanced result gives each company equal weight. It answers what a typical company looks like.",
 };
 
 export type MethodologyTopic =

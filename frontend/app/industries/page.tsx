@@ -20,7 +20,7 @@ export default async function IndustriesIndexPage() {
         <p className="lede">
           Each industry shows what a typical filing looks like and what a typical company looks
           like.{" "}
-          <MethodologyLink topic="sector-weighting">Why are these different? →</MethodologyLink>
+          <MethodologyLink topic="sector-weighting">Why are these different?</MethodologyLink>
         </p>
       </section>
 
@@ -61,7 +61,7 @@ export default async function IndustriesIndexPage() {
                   ? "Both views look relatively flat."
                   : fw.tone === cbl.tone
                     ? "Filing-level and company-level views point in a similar direction."
-                    : "Filing-level and company-level views can diverge — weighting matters."}
+                    : "Filing-level and company-level views can diverge. Weighting matters."}
               </p>
             </Link>
           );

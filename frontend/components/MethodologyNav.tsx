@@ -4,12 +4,12 @@ const SECTIONS = [
   { id: "research-question", label: "Research question" },
   { id: "data", label: "Data" },
   { id: "mda", label: "MD&A" },
-  { id: "finbert", label: "FinBERT" },
+  { id: "finbert", label: "Tone scoring (FinBERT)" },
   { id: "financial-data", label: "Financial data" },
   { id: "correlation", label: "Correlation" },
   { id: "agreement", label: "Agreement" },
   { id: "sample-size", label: "Sample size" },
-  { id: "fdr", label: "FDR" },
+  { id: "fdr", label: "Multiple testing (FDR)" },
   { id: "sector-weighting", label: "Sector weighting" },
   { id: "limitations", label: "Limitations" },
 ];
@@ -38,7 +38,7 @@ export default function MethodologyNav() {
           }}
         >
           <option value="" disabled>
-            Choose…
+            Choose a section
           </option>
           {SECTIONS.map((s) => (
             <option key={s.id} value={s.id}>

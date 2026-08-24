@@ -25,15 +25,14 @@ export default async function AboutPage() {
       <section className="section open-section">
         <h2>Why it was built</h2>
         <p>
-          SEC filings are public, structured, and full of managerial language. This project asks a
-          simple accounting question with modern tools: when management explains performance in the
-          MD&amp;A, does the tone of that language tend to move with the numbers for the same
-          period?
+          This project began with a simple question about whether management&apos;s language changes
+          with company performance. SEC filings are public and structured. They also contain a large
+          amount of managerial explanation in the MD&amp;A.
         </p>
         <p>
-          It combines financial statement understanding, NLP scoring, careful period matching, and
-          transparent statistics — presented so a second-year accounting student can follow the
-          story without a stats course.
+          The work combines financial statement reading, language scoring, careful period matching,
+          and transparent statistics. The goal is that a second-year accounting student can follow
+          the main result without already knowing NLP or advanced statistical testing.
         </p>
       </section>
 
@@ -48,11 +47,13 @@ export default async function AboutPage() {
             <strong>{fmtCount(board)}</strong> companies on the main quarterly board ·{" "}
             <strong>{fmtCount(fdr)}</strong> remain notable after multiple-testing adjustment
           </li>
-          <li>Sources: SEC EDGAR filings, XBRL companyfacts, FinBERT for MD&amp;A tone</li>
+          <li>
+            Sources: SEC EDGAR filings, XBRL companyfacts, and FinBERT for MD&amp;A tone scoring
+          </li>
         </ul>
         <p>
-          Purpose: explore <strong>contemporaneous</strong> relationships — not predict markets or
-          recommend trades.
+          Purpose: explore <strong>contemporaneous</strong> relationships. This is not a forecast
+          and not trading advice.
         </p>
       </section>
 

@@ -52,8 +52,7 @@ export default async function MethodologyPage() {
         <h1>Methodology</h1>
         <p className="lede">
           This page explains the project in plain language first, then adds technical detail for
-          readers who want the exact rules. This is not a forecast, not causation, and not a trading
-          signal.
+          readers who want the exact rules. This is not a forecast, not causation, and not trading advice.
         </p>
       </section>
 
@@ -116,7 +115,7 @@ export default async function MethodologyPage() {
         title="MD&A"
         plain={
           <p>
-            MD&amp;A means Management&apos;s Discussion and Analysis — the section where management
+            Management&apos;s Discussion and Analysis, or MD&amp;A, is the section where management
             explains performance, trends, and risks in its own words. This project scores that
             section only, not the whole filing.
           </p>
@@ -131,11 +130,11 @@ export default async function MethodologyPage() {
 
       <Section
         id="finbert"
-        title="FinBERT"
+        title="Tone scoring (FinBERT)"
         plain={
           <p>
-            FinBERT is a language model trained on financial text. It estimates whether a sentence
-            sounds positive, neutral, or negative — a structured reading aid, not a human judgment
+            FinBERT is a language model trained for financial text. It estimates whether a sentence
+            sounds positive, neutral, or negative. It is a structured reading aid, not a human judgment
             of emphasis or intent.
           </p>
         }
@@ -188,9 +187,8 @@ export default async function MethodologyPage() {
         title="XBRL"
         plain={
           <p>
-            Companies report numbers to the SEC in a structured format so computers can read them
-            consistently. This project uses those structured figures rather than scraping tables by
-            hand.
+            XBRL is structured financial data reported to the SEC. This project uses those structured
+            figures rather than scraping tables by hand.
           </p>
         }
         technical={<p>SEC companyfacts XBRL for the same accession as the filing text.</p>}
@@ -202,7 +200,7 @@ export default async function MethodologyPage() {
         plain={
           <p>
             Tone and numbers must come from the same filing period. Matching the wrong quarter can
-            create a false relationship — so the project applies strict period rules.
+            create a false relationship, so the project applies strict period rules.
           </p>
         }
         technical={
@@ -220,8 +218,8 @@ export default async function MethodologyPage() {
         plain={
           <p>
             A relationship (correlation) answers: when tone is more positive, do earnings changes
-            also tend to be stronger? Two related measures are shown — Spearman first, Pearson
-            second — because extreme earnings swings can distort a simple straight-line fit.
+            also tend to be stronger? Two related measures are shown. Spearman is primary; Pearson is
+            secondary, because extreme earnings swings can distort a simple straight-line fit.
           </p>
         }
         technical={
@@ -238,9 +236,9 @@ export default async function MethodologyPage() {
         title="Spearman"
         plain={
           <p>
-            Spearman asks whether companies with more positive tone generally also had stronger
-            earnings changes, without letting a few extreme earnings swings dominate the result.
-            That is why Spearman is the primary public metric.
+            Spearman measures whether more positive tone generally appears alongside stronger
+            financial performance. It focuses on direction and is less affected by unusually large
+            earnings changes. That is why Spearman is the primary public metric.
           </p>
         }
         technical={
@@ -291,7 +289,7 @@ export default async function MethodologyPage() {
         plain={
           <p>
             Sample size is how many comparable quarterly filings enter the estimate. More
-            observations usually make the estimate steadier — but a larger sample is not automatic
+            observations usually make the estimate steadier, but a larger sample is not automatic
             proof of an important relationship.
           </p>
         }
@@ -310,8 +308,8 @@ export default async function MethodologyPage() {
         title="p-values"
         plain={
           <p>
-            A p-value asks how surprising the observed relationship would be if there were truly no
-            association. Small p-values are a clue, not a verdict — especially when hundreds of
+            The p-value measures how unusual a result this strong would be under a no-relationship
+            assumption. Small p-values are a clue, not a verdict, especially when hundreds of
             companies are tested.
           </p>
         }
@@ -329,8 +327,8 @@ export default async function MethodologyPage() {
         plain={
           <>
             <p>
-              If you test hundreds of companies, some can look significant just by luck. FDR (false
-              discovery rate) adjusts for that problem.
+              When hundreds of companies are tested, some can appear statistically notable by chance.
+              False Discovery Rate, or FDR, adjusts for that problem.
             </p>
             <div className="fdr-funnel" aria-label="FDR funnel illustration">
               <div className="fdr-step">
@@ -349,7 +347,7 @@ export default async function MethodologyPage() {
               </div>
               <div className="fdr-step highlight">
                 <strong>{fmtCount(fdr)}</strong>
-                <span>remain after FDR q &lt; .05</span>
+                <span>remain after multiple-testing adjustment (q &lt; .05)</span>
               </div>
             </div>
             <p>
@@ -372,8 +370,8 @@ export default async function MethodologyPage() {
         title="Confidence intervals"
         plain={
           <p>
-            A confidence interval shows a plausible range for the Pearson relationship given the
-            sample. Wider intervals mean more uncertainty.
+            The confidence interval shows a range of plausible values for the estimated relationship.
+            Wider intervals mean more uncertainty. It is not a guaranteed range.
           </p>
         }
         technical={<p>Fisher 95% CI for Pearson r when n is sufficient.</p>}
@@ -385,8 +383,8 @@ export default async function MethodologyPage() {
         plain={
           <p>
             On the site, Spearman values are also described in everyday language (for example,
-            “strong positive”). These labels are for readability only — they do not measure
-            economic importance or investment value.
+            “strong positive”). These labels describe statistical relationship strength only. They do not
+            measure company quality, management credibility, or investment value.
           </p>
         }
         technical={
@@ -394,7 +392,7 @@ export default async function MethodologyPage() {
             <li>ρ ≥ 0.70: Strong positive</li>
             <li>0.40–0.69: Moderate positive</li>
             <li>0.20–0.39: Weak positive</li>
-            <li>−0.19–0.19: Little / no relationship</li>
+            <li>−0.19–0.19: Little or no relationship</li>
             <li>−0.39 to −0.20: Weak negative</li>
             <li>−0.69 to −0.40: Moderate negative</li>
             <li>ρ ≤ −0.70: Strong negative</li>
@@ -408,12 +406,10 @@ export default async function MethodologyPage() {
         plain={
           <>
             <p>
-              <strong>Does the typical filing show a relationship?</strong> That is the
-              filing-weighted result — every filing counts.
+              <strong>Typical filing.</strong> That is the filing-weighted result: every filing counts.
             </p>
             <p>
-              <strong>Does the typical company show a relationship?</strong> That is the
-              company-balanced result — each company gets equal weight so large filers do not
+              <strong>Typical company.</strong> That is the company-balanced result: each company gets equal weight so large filers do not
               dominate.
             </p>
             <p>
@@ -435,7 +431,7 @@ export default async function MethodologyPage() {
         title="How to read scatterplots"
         plain={
           <ul className="prose-list">
-            <li>Each dot is one filing</li>
+            <li>Each dot represents one 10-Q filing</li>
             <li>Left–right (x): MD&amp;A tone (more negative ← → more positive)</li>
             <li>Up–down (y): year-over-year financial change</li>
             <li>Upper-right: more positive language with improving earnings</li>
@@ -460,7 +456,7 @@ export default async function MethodologyPage() {
             <li>Model averages are not a human reading of emphasis or risk language</li>
             <li>Sector filing-weighted vs company-balanced results can differ</li>
             <li>Annual (10-K) history remains short for many companies</li>
-            <li>This site explores contemporaneous association — not prediction</li>
+            <li>This site explores a same-filing relationship, not prediction</li>
           </ul>
         }
       />

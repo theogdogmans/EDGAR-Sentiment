@@ -8,7 +8,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** Accessible definition tip — works on hover and tap. */
+/** Accessible definition tip; works on hover and tap. */
 export default function TermTip({ term, children }: Props) {
   const def = TERM_DEFS[term];
   const id = useId();

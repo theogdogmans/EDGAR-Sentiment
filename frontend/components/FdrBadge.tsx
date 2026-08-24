@@ -11,7 +11,7 @@ type Props = {
 };
 
 /**
- * Plain-English multiple-testing badge — never “FDR SIGNIFICANT” alone.
+ * Plain-English multiple-testing badge. Never label as "FDR SIGNIFICANT" alone.
  * Meaning is always text; color is supplementary.
  */
 export default function FdrBadge({ active, compact, interactive = true }: Props) {
@@ -19,16 +19,13 @@ export default function FdrBadge({ active, compact, interactive = true }: Props)
   const [open, setOpen] = useState(false);
   if (!active) return null;
 
-  const label = compact
-    ? "Survives multiple-testing adjustment"
-    : "Survives multiple-testing adjustment";
+  const label = "Survives multiple-testing adjustment";
+  const tip =
+    "When hundreds of companies are tested, some can appear statistically notable by chance. This badge means the relationship still stood out after that adjustment.";
 
   if (!interactive) {
     return (
-      <span
-        className="fdr-badge fdr-badge-static"
-        title="We tested hundreds of companies. Some relationships appear significant by chance. This badge means the relationship still stands out after adjusting for that."
-      >
+      <span className="fdr-badge fdr-badge-static" title={tip}>
         <span className="fdr-badge-mark" aria-hidden="true">
           ✓
         </span>
@@ -57,9 +54,7 @@ export default function FdrBadge({ active, compact, interactive = true }: Props)
         {label}
       </button>
       <span role="tooltip" id={id} className="fdr-badge-tip" hidden={!open}>
-        We tested hundreds of companies. Some relationships will appear significant by chance. This
-        badge means the relationship still stands out after adjusting for that.{" "}
-        <MethodologyLink topic="fdr">Read about FDR →</MethodologyLink>
+        {tip} <MethodologyLink topic="fdr">Read about FDR</MethodologyLink>
       </span>
     </span>
   );

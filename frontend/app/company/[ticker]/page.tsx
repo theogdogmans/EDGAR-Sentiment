@@ -93,7 +93,7 @@ export default async function CompanyPage({
         <div className="company-primary-metrics">
           <div>
             <div className="label">
-              Spearman (<TermTip term="spearman">primary</TermTip>)
+              Relationship strength (<TermTip term="spearman">Spearman</TermTip>, primary)
             </div>
             <div className={`value ${toneClass(ni.spearman_rho)}`}>{fmtR(ni.spearman_rho)}</div>
           </div>
@@ -109,7 +109,7 @@ export default async function CompanyPage({
             ) : (
               <p className="muted tiny">
                 Does not remain notable after adjusting for hundreds of tests.{" "}
-                <MethodologyLink topic="fdr">Why? →</MethodologyLink>
+                <MethodologyLink topic="fdr">Why?</MethodologyLink>
               </p>
             )}
           </div>
@@ -117,24 +117,27 @@ export default async function CompanyPage({
         <div className="secondary-stat">
           <span>
             Pearson (secondary): {fmtR(ni.pearson_r)}{" "}
-            <MethodologyLink topic="correlation">Why show both? →</MethodologyLink>
+            <MethodologyLink topic="correlation">Why show both?</MethodologyLink>
           </span>
         </div>
         <p className="note">
-          Contemporaneous association only — not predictive.{" "}
-          <Link href="/methodology#limitations">Limitations →</Link>
+          The analysis measures a same-filing relationship, not a forecast.{" "}
+          <Link href="/methodology#limitations">Limitations</Link>
         </p>
         {isLimitedSample(row) ? (
-          <p className="note">Limited sample (6–7 quarters) — excluded from the default public board.</p>
+          <p className="note">
+            Limited sample (6–7 quarters). Excluded from the default public board.
+          </p>
         ) : null}
       </section>
 
       <div className="panel soft chart-panel">
         <h2>Tone vs earnings change</h2>
         <p className="hint">
-          Each dot represents one 10-Q filing. Upper-right and lower-left observations indicate tone
-          and earnings moving in the same direction.{" "}
-          <MethodologyLink topic="scatterplots">How to read this chart →</MethodologyLink>
+          Each dot represents one 10-Q filing. Points farther right have more positive MD&amp;A tone.
+          Points higher on the chart had stronger year-over-year net income growth. Upper-right and
+          lower-left points indicate tone and earnings moving in the same direction.{" "}
+          <MethodologyLink topic="scatterplots">How to read this chart</MethodologyLink>
         </p>
         <SentimentScatter points={scatter} />
       </div>
@@ -146,14 +149,14 @@ export default async function CompanyPage({
           <p className="muted">
             {ni.agree_num} / {ni.agree_den} direction agreement
           </p>
-          <MethodologyLink topic="agreement">How is agreement calculated? →</MethodologyLink>
+          <MethodologyLink topic="agreement">How is agreement calculated?</MethodologyLink>
         </div>
       ) : null}
 
       <details className="panel soft">
         <summary>
           <strong>Statistical details</strong>
-          <span className="muted"> — Pearson, p-values, q, confidence interval</span>
+          <span className="muted"> (Pearson, p-values, q, confidence interval)</span>
         </summary>
         <table style={{ marginTop: 12 }}>
           <tbody>
@@ -181,13 +184,13 @@ export default async function CompanyPage({
             <tr>
               <th>Sample size (n)</th>
               <td>
-                {ni.n || "—"} · {sampleSizeLabel(ni.n)}
+                {ni.n || "n/a"} · {sampleSizeLabel(ni.n)}
               </td>
             </tr>
             <tr>
               <th>Agreement</th>
               <td>
-                {ni.agree_label ?? "—"}
+                {ni.agree_label ?? "n/a"}
                 {ni.agree_num != null && ni.agree_den != null
                   ? ` (${ni.agree_num} / ${ni.agree_den})`
                   : ""}
@@ -200,7 +203,7 @@ export default async function CompanyPage({
       <details className="panel soft">
         <summary>
           <strong>Revenue analysis</strong>
-          <span className="muted"> — secondary metric</span>
+          <span className="muted"> (secondary metric)</span>
         </summary>
         <p className="hint" style={{ marginTop: 12 }}>
           Secondary to net income because revenue concepts are less comparable across some
@@ -210,10 +213,10 @@ export default async function CompanyPage({
           <div className="empty-state">
             <strong>Revenue comparison not used</strong>
             <p>
-              Revenue-like concepts are not comparable enough across companies in this sector for
-              the primary analysis.
+              Revenue comparison is not used for this industry because companies report revenue-like
+              concepts differently.
             </p>
-            <MethodologyLink topic="financial-data">Why? →</MethodologyLink>
+            <MethodologyLink topic="financial-data">Why?</MethodologyLink>
           </div>
         ) : (
           <div className="stats">
@@ -246,7 +249,7 @@ export default async function CompanyPage({
       <details className="panel soft">
         <summary>
           <strong>Annual 10-K analysis</strong>
-          <span className="muted"> — secondary analysis</span>
+          <span className="muted"> (secondary analysis)</span>
         </summary>
         <p className="hint" style={{ marginTop: 12 }}>
           Annual samples are shorter and are not mixed into the default quarterly board.

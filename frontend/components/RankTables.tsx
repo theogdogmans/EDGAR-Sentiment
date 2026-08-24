@@ -25,7 +25,7 @@ export function SectorRankTable({
       <h2>{title}</h2>
       <p className="hint">
         Typical filing vs typical company.{" "}
-        <MethodologyLink topic="sector-weighting">Why are these different? →</MethodologyLink>
+        <MethodologyLink topic="sector-weighting">Why are these different?</MethodologyLink>
       </p>
       {!rows.length ? (
         <p className="muted">{empty}</p>
@@ -60,13 +60,13 @@ export function SectorRankTable({
                   </td>
                   <td>
                     <div className={toneClass(rho)}>{fwLabel.short}</div>
-                    <div className="muted tiny">Spearman {fmtR(rho)}</div>
+                    <div className="muted tiny">Strength {fmtR(rho)}</div>
                   </td>
                   <td>
                     <div className={toneClass(cb)}>{relationshipFromRho(cb).short}</div>
-                    <div className="muted tiny">Pearson {fmtR(cb)}</div>
+                    <div className="muted tiny">Straight-line {fmtR(cb)}</div>
                   </td>
-                  <td>{n || "—"}</td>
+                  <td>{n || "n/a"}</td>
                   <td>{row.n_companies}</td>
                 </tr>
               );
@@ -90,7 +90,9 @@ export function CompanyRankTable({
   return (
     <div className="panel soft">
       <h2>{title}</h2>
-      <p className="hint">Quarterly tone vs net income · at least 8 observations · Spearman first.</p>
+      <p className="hint">
+        Quarterly tone vs net income · at least 8 observations · relationship strength first.
+      </p>
       {!rows.length ? (
         <p className="muted">{empty}</p>
       ) : (
@@ -116,7 +118,7 @@ export function CompanyRankTable({
                   <td>
                     <div className={`rel-label ${label.tone}`}>{label.short}</div>
                     <StrengthBar rho={ni.spearman_rho} tone={label.tone} />
-                    <div className="muted tiny">Spearman {fmtR(ni.spearman_rho)}</div>
+                    <div className="muted tiny">Strength {fmtR(ni.spearman_rho)}</div>
                   </td>
                   <td>{observationsPhrase(ni.n)}</td>
                 </tr>

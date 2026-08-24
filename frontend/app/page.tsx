@@ -46,11 +46,11 @@ function bySectorSpearman(rows: SectorStat[], dir: "desc" | "asc") {
 
 function FeaturedCaseGrid({ companies }: { companies: CompanyStat[] }) {
   const copy: Record<string, string> = {
-    AAPL: "Tone generally became more positive when quarterly earnings improved.",
-    ADI: "One of the most consistent positive relationships in the dataset.",
-    AMZN: "Tone and net income often moved in opposite directions, but the result does not survive the multiple-testing adjustment.",
-    NVDA: "Tone and earnings moved in the same direction in all 13 eligible quarters.",
-    ABBV: "A useful example showing that strong-looking early results can disappear after stricter methodology.",
+    AAPL: "Management tone tended to become more positive when quarterly earnings improved.",
+    ADI: "One of the stronger positive relationships in the published set.",
+    AMZN: "Showed a moderate negative relationship, but the result did not survive the multiple-testing adjustment.",
+    NVDA: "Tone and earnings moved in the same direction in all 13 comparable quarters.",
+    ABBV: "Showed little relationship between MD&A tone and quarterly net income.",
   };
   const order = ["AAPL", "ADI", "AMZN", "NVDA", "ABBV"];
   const by = Object.fromEntries(companies.map((c) => [c.ticker, c]));
@@ -60,10 +60,10 @@ function FeaturedCaseGrid({ companies }: { companies: CompanyStat[] }) {
   return (
     <section className="section" aria-labelledby="stories-heading">
       <div className="section-head">
-        <h2 id="stories-heading">Different companies tell different stories</h2>
+        <h2 id="stories-heading">Which companies illustrate the result?</h2>
         <p>
-          Educational examples — stronger relationships, informative non-survivors, and near-zero
-          cases.
+          A few educational examples: stronger relationships, results that do not survive the
+          multiple-testing adjustment, and near-zero cases.
         </p>
       </div>
       <div className="story-grid">
@@ -91,8 +91,8 @@ function FeaturedCaseGrid({ companies }: { companies: CompanyStat[] }) {
               <MiniScatter points={pts} />
               <p className="story-takeaway">{copy[c.ticker]}</p>
               <div className="story-meta muted tiny">
-                Spearman {fmtR(ni.spearman_rho)} · {observationsPhrase(ni.n)}
-                {agree ? ` · ${ni.agree_num}/${ni.agree_den} same direction` : ""}
+                Relationship strength: {fmtR(ni.spearman_rho)} · {observationsPhrase(ni.n)}
+                {agree ? ` · Direction agreement: ${ni.agree_num}/${ni.agree_den}` : ""}
               </div>
             </Link>
           );
@@ -126,8 +126,8 @@ export default async function HomePage() {
         <div className="kicker">Accounting · SEC filings · language analysis</div>
         <h1>Does the tone match the numbers?</h1>
         <p className="lede hero-lede">
-          I analyzed {fmtCount(analyzed)} S&amp;P 500 10-K and 10-Q filings to see whether the tone
-          of management&apos;s MD&amp;A moves with changes in company performance.
+          This project tests whether the tone of management&apos;s MD&amp;A moves with changes in
+          financial performance across {fmtCount(analyzed)} S&amp;P 500 10-K and 10-Q filings.
         </p>
         <div className="hero-stats">
           <div className="hero-stat">
@@ -144,12 +144,12 @@ export default async function HomePage() {
               Relationships remained statistically notable after adjusting for hundreds of tests
             </div>
             <MethodologyLink topic="fdr" className="meth-link">
-              Why only {fdrN}? →
+              Why only {fdrN}?
             </MethodologyLink>
           </div>
         </div>
         <p className="note">
-          Contemporaneous association only — not a forecast.{" "}
+          The analysis measures a same-filing relationship, not a forecast.{" "}
           {source === "phase5_preview" ? "Preview data." : null}
         </p>
       </section>
@@ -157,7 +157,7 @@ export default async function HomePage() {
       <section className="section pipeline-visual" aria-label="Research workflow">
         <div className="section-head">
           <h2>How the analysis works</h2>
-          <p>A short path from the filing to the comparison.</p>
+          <p>From the filing text to the comparison with reported results.</p>
         </div>
         <ol className="flow-steps">
           <li>
@@ -169,20 +169,20 @@ export default async function HomePage() {
             <span className="flow-body">Management explains what happened</span>
           </li>
           <li>
-            <span className="flow-title">FinBERT</span>
-            <span className="flow-body">Measure the tone of that language</span>
+            <span className="flow-title">Tone score</span>
+            <span className="flow-body">Estimate how positive or negative the language is</span>
           </li>
           <li>
-            <span className="flow-title">XBRL</span>
-            <span className="flow-body">Match the actual financial results</span>
+            <span className="flow-title">Financial results</span>
+            <span className="flow-body">Match the reported numbers for the same period</span>
           </li>
           <li>
-            <span className="flow-title">Analysis</span>
-            <span className="flow-body">See whether tone and performance move together</span>
+            <span className="flow-title">Comparison</span>
+            <span className="flow-body">See whether tone and performance moved together</span>
           </li>
         </ol>
         <p className="pipeline-foot">
-          <Link href="/methodology">See full methodology →</Link>
+          <Link href="/methodology">View methodology</Link>
         </p>
       </section>
 
@@ -190,29 +190,32 @@ export default async function HomePage() {
         <div className="section-head">
           <h2 id="findings-heading">What did the analysis find?</h2>
           <p>
-            Across the S&amp;P 500, management tone usually had only a weak-to-moderate relationship
-            with quarterly earnings. A smaller group of companies showed much stronger and more
+            Across the S&amp;P 500, most companies showed weak-to-moderate relationships between
+            management tone and quarterly earnings. A smaller group showed stronger and more
             consistent patterns.
           </p>
         </div>
         <div className="findings-points">
           <article>
-            <h3>Typical relationship is modest</h3>
-            <p>Most companies do not show a dramatic lockstep between tone and earnings.</p>
+            <h3>Most relationships are modest</h3>
+            <p>Tone and earnings usually do not move in tight lockstep.</p>
           </article>
           <article>
             <h3>
-              {fdrN} of {ready} ranking-eligible relationships survived FDR
+              {fdrN} of {ready} ranking-eligible relationships remain after multiple-testing
+              adjustment
             </h3>
             <p>
               After adjusting for hundreds of company tests, a minority remain statistically
-              notable — not proven.{" "}
-              <MethodologyLink topic="fdr">Why that matters →</MethodologyLink>
+              notable. That is not the same as proof.{" "}
+              <MethodologyLink topic="fdr">Why that matters</MethodologyLink>
             </p>
           </article>
           <article>
-            <h3>Different companies tell very different stories</h3>
-            <p>Positive, negative, high-agreement, and near-zero examples all appear in the data.</p>
+            <h3>Company results vary widely</h3>
+            <p>
+              Positive, negative, high-agreement, and near-zero examples all appear in the data.
+            </p>
           </article>
         </div>
       </section>
@@ -222,14 +225,14 @@ export default async function HomePage() {
       <section className="section" id="explore" aria-labelledby="explore-heading">
         <div className="section-head row-head">
           <div>
-            <h2 id="explore-heading">Explore rankings</h2>
+            <h2 id="explore-heading">Company rankings</h2>
             <p>
               Default board: quarterly MD&amp;A tone vs net income, at least 8 observations,
-              Spearman first.
+              relationship strength first.
             </p>
           </div>
           <Link className="text-cta" href="#companies-board">
-            Explore all {fmtCount(ready)} companies →
+            View all {fmtCount(ready)} companies
           </Link>
         </div>
         <div className="rank-grid">
@@ -253,7 +256,7 @@ export default async function HomePage() {
             <p>A few contrasts between stronger and flatter industry patterns.</p>
           </div>
           <Link className="text-cta" href="/industries">
-            Explore all industries →
+            See industry results
           </Link>
         </div>
         <div className="sector-snapshot-grid">
@@ -290,14 +293,14 @@ export default async function HomePage() {
       </section>
 
       <section className="section cta-band" aria-labelledby="rigor-heading">
-        <h2 id="rigor-heading">How rigorous is this?</h2>
+        <h2 id="rigor-heading">How careful is the method?</h2>
         <p>
-          Period-matched filings, Spearman-first rankings, direction agreement, sample-size rules,
-          and FDR adjustment for multiple testing — with clear limitations.
+          Period-matched filings, rank-based relationship measures, direction agreement, sample-size
+          rules, and a multiple-testing adjustment, with limitations stated plainly.
         </p>
         <div className="cta-row">
           <Link className="btn-primary" href="/methodology">
-            Read the methodology
+            View methodology
           </Link>
           <Link className="btn-ghost" href="/about">
             About this project
