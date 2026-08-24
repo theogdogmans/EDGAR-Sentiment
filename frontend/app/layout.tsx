@@ -27,9 +27,9 @@ export const metadata: Metadata = {
     title: "EDGAR Sentiment — Does the Tone Match the Numbers?",
     description:
       "An analysis of 9,697 S&P 500 SEC filings comparing management's MD&A tone with quarterly financial performance.",
-    url: siteUrl,
+    url: "/",
     siteName: "EDGAR Sentiment",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Does the tone match the numbers?" }],
+    images: [{ url: "/og.png", width: 1200, height: 627, alt: "Does the tone match the numbers?" }],
     locale: "en_US",
     type: "website",
   },
