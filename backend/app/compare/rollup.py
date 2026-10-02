@@ -11,7 +11,13 @@ import json
 from typing import Any, Optional
 
 from .. import db
-from .metrics import _corr, summarize, summarize_phase2
+from .metrics import (
+    _corr,
+    accumulate_pooled_yoy,
+    compute_pooled_yoy_bounds,
+    summarize,
+    summarize_phase2,
+)
 from .stats_core import (
     FORM_10K,
     FORM_10Q,
@@ -21,6 +27,7 @@ from .stats_core import (
     agreement_counts,
     analyze_pairs,
     benjamini_hochberg,
+    clip_yoy,
     fisher_mean_r,
     form_bucket,
     reliability_class,
@@ -73,37 +80,57 @@ def _flatten_points_as_filings(points: list[dict[str, Any]]) -> list[dict[str, A
     return [dict(p) for p in points]
 
 
-def build_company_stats() -> list[dict[str, Any]]:
-    """Legacy production-shaped rows + additive ``stats_phase2`` JSON."""
+def stamp_point_winsor(point: dict[str, Any], bounds: dict[tuple[str, str], tuple[float, float]]) -> None:
+    """Attach capped YoY fields. Leaves income_pct and revenue_pct unchanged."""
+    form = form_bucket(point.get("form"))
+    income = point.get("income_pct")
+    if income is not None:
+        point["income_pct_winsor"] = clip_yoy(float(income), bounds.get((form, "net_income")))
+    revenue = point.get("revenue_pct")
+    if revenue is not None:
+        point["revenue_pct_winsor"] = clip_yoy(float(revenue), bounds.get((form, "revenue")))
+
+
+def _company_rows_from_loaded(
+    loaded: list[tuple[dict[str, Any], list[dict[str, Any]]]],
+    bounds: dict[tuple[str, str], tuple[float, float]],
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for sp in db.list_sp500():
-        ticker = sp["ticker"]
-        filings = company_filings_payload(ticker)
+    for sp, filings in loaded:
         summary = summarize(filings)
-        phase2 = summarize_phase2(filings)
+        phase2 = summarize_phase2(filings, yoy_bounds=bounds)
         points = []
         scores: list[float] = []
         for f in filings:
-            if not f.get("sentiment"):
+            score = None
+            sent = f.get("sentiment")
+            if isinstance(sent, dict):
+                score = sent.get("score")
+            elif isinstance(sent, (int, float)):
+                score = sent
+            if score is None:
                 continue
-            scores.append(float(f["sentiment"]["score"]))
-            points.append(_point(f, f))
+            scores.append(float(score))
+            if isinstance(sent, dict):
+                points.append(_point(f, f))
+            else:
+                points.append(dict(f))
+        for point in points:
+            stamp_point_winsor(point, bounds)
         income = summary["correlation"]["net_income"] or {}
         revenue = summary["correlation"]["revenue"] or {}
-        # Primary Phase 2 n for reliability labels (prefer 10-Q income, else combined)
         p2_income_q = phase2["by_form"][FORM_10Q]["net_income"]
         p2_income_k = phase2["by_form"][FORM_10K]["net_income"]
         p2_income_c = phase2["by_form"][FORM_COMBINED]["net_income"]
         rows.append(
             {
-                "ticker": ticker,
-                "display": sp["display"] or ticker,
-                "name": sp["name"],
-                "sector": sp["sector"] or "Unknown",
-                "cik": sp["cik"],
+                "ticker": sp["ticker"],
+                "display": sp.get("display") or sp["ticker"],
+                "name": sp.get("name") or sp["ticker"],
+                "sector": sp.get("sector") or "Unknown",
+                "cik": sp.get("cik"),
                 "n_filings": int(summary["analyzed_count"]),
                 "mean_sentiment": float(sum(scores) / len(scores)) if scores else None,
-                # Legacy production fields (pooled) — unchanged semantics for UI sync
                 "r_income": income.get("r"),
                 "p_income": income.get("p_value"),
                 "n_income": int(income.get("n") or 0),
@@ -113,56 +140,57 @@ def build_company_stats() -> list[dict[str, Any]]:
                 "agreement_income": summary["agreement_rate"]["net_income"],
                 "agreement_revenue": summary["agreement_rate"]["revenue"],
                 "points": points,
-                "featured": False,
+                "featured": bool(sp.get("featured")),
                 "stats_phase2": phase2,
+                "yoy_winsor_bounds": {
+                    f"{form}|{metric}": [lo, hi] for (form, metric), (lo, hi) in bounds.items()
+                },
                 "reliability_income_10q": reliability_class(int(p2_income_q.get("n") or 0)),
                 "reliability_income_10k": reliability_class(int(p2_income_k.get("n") or 0)),
                 "reliability_income_combined": reliability_class(int(p2_income_c.get("n") or 0)),
+                "cloud_r_income": sp.get("r_income"),
+                "cloud_n_income": sp.get("n_income"),
             }
         )
     _attach_company_fdr(rows)
     return rows
 
 
+def _bounds_from_filings(groups: list[list[dict[str, Any]]]) -> dict[tuple[str, str], tuple[float, float]]:
+    pools: dict[tuple[str, str], list[float]] = {}
+    for filings in groups:
+        accumulate_pooled_yoy(filings, pools)
+    return compute_pooled_yoy_bounds(pools)
+
+
+def build_company_stats() -> list[dict[str, Any]]:
+    """Legacy production-shaped rows + additive ``stats_phase2`` JSON.
+
+    Spearman, Pearson, agreement, and FDR use YoY ratios capped at the pooled
+    1st and 99th percentile for that form and metric. Raw ratios stay on each point.
+    """
+    loaded: list[tuple[dict[str, Any], list[dict[str, Any]]]] = []
+    for sp in db.list_sp500():
+        loaded.append((dict(sp), company_filings_payload(sp["ticker"])))
+    bounds = _bounds_from_filings([filings for _, filings in loaded])
+    return _company_rows_from_loaded(loaded, bounds)
+
+
 def build_company_stats_from_cloud_rows(cloud_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Rebuild Phase 2 from exported ``company_stats`` rows (points JSON).
 
-    Used for audits when local SQLite is empty. Does not mutate raw YoY values.
+    Caps YoY at the pooled 1st and 99th percentile before correlation.
+    Does not mutate the raw income_pct / revenue_pct fields.
     """
-    rows: list[dict[str, Any]] = []
+    loaded: list[tuple[dict[str, Any], list[dict[str, Any]]]] = []
     for c in cloud_rows:
-        points = list(c.get("points") or [])
-        filings = _flatten_points_as_filings(points)
-        summary = summarize(filings)
-        phase2 = summarize_phase2(filings)
-        income = summary["correlation"]["net_income"] or {}
-        revenue = summary["correlation"]["revenue"] or {}
-        scores = [float(p["sentiment"]) for p in points if p.get("sentiment") is not None]
-        rows.append(
-            {
-                "ticker": c["ticker"],
-                "display": c.get("display") or c["ticker"],
-                "name": c.get("name") or c["ticker"],
-                "sector": c.get("sector") or "Unknown",
-                "cik": c.get("cik"),
-                "n_filings": int(c.get("n_filings") or len(scores)),
-                "mean_sentiment": float(sum(scores) / len(scores)) if scores else None,
-                "r_income": income.get("r") if income.get("r") is not None else c.get("r_income"),
-                "p_income": income.get("p_value"),
-                "n_income": int(income.get("n") or 0),
-                "r_revenue": revenue.get("r") if revenue.get("r") is not None else c.get("r_revenue"),
-                "p_revenue": revenue.get("p_value"),
-                "n_revenue": int(revenue.get("n") or 0),
-                "agreement_income": summary["agreement_rate"]["net_income"],
-                "agreement_revenue": summary["agreement_rate"]["revenue"],
-                "points": points,
-                "featured": bool(c.get("featured")),
-                "stats_phase2": phase2,
-                "cloud_r_income": c.get("r_income"),
-                "cloud_n_income": c.get("n_income"),
-            }
-        )
-    _attach_company_fdr(rows)
+        loaded.append((c, _flatten_points_as_filings(list(c.get("points") or []))))
+    bounds = _bounds_from_filings([filings for _, filings in loaded])
+    rows = _company_rows_from_loaded(loaded, bounds)
+    for row, (src, _) in zip(rows, loaded):
+        row["featured"] = bool(src.get("featured"))
+        if row.get("cik") is None:
+            row["cik"] = src.get("cik")
     return rows
 
 
@@ -228,17 +256,25 @@ def build_sector_stats(companies: list[dict[str, Any]]) -> list[dict[str, Any]]:
                         "filed": p.get("filed"),
                         "sentiment": s,
                         "income_pct": p.get("income_pct"),
+                        "income_pct_winsor": p.get("income_pct_winsor"),
                         "revenue_pct": p.get("revenue_pct"),
+                        "revenue_pct_winsor": p.get("revenue_pct_winsor"),
                         "income_current": p.get("income_current"),
                         "income_prior": p.get("income_prior"),
                     }
                 )
-                if p.get("income_pct") is not None:
+                income_yoy = p.get("income_pct_winsor")
+                if income_yoy is None:
+                    income_yoy = p.get("income_pct")
+                revenue_yoy = p.get("revenue_pct_winsor")
+                if revenue_yoy is None:
+                    revenue_yoy = p.get("revenue_pct")
+                if income_yoy is not None:
                     income_x.append(float(s))
-                    income_y.append(float(p["income_pct"]))
-                if p.get("revenue_pct") is not None:
+                    income_y.append(float(income_yoy))
+                if revenue_yoy is not None:
                     revenue_x.append(float(s))
-                    revenue_y.append(float(p["revenue_pct"]))
+                    revenue_y.append(float(revenue_yoy))
 
         display_points = pooled_points
         if len(display_points) > 400:
@@ -280,7 +316,8 @@ def _sector_phase2(members: list[dict[str, Any]], pooled_points: list[dict[str, 
     ):
         metrics_block: dict[str, Any] = {}
         for metric, y_key in (("net_income", "income_pct"), ("revenue", "revenue_pct")):
-            # A) Filing-weighted
+            y_capped = f"{y_key}_winsor"
+            # A) Filing-weighted on the pooled cap when it is present
             xs: list[float] = []
             ys: list[float] = []
             for p in pooled_points:
@@ -289,10 +326,13 @@ def _sector_phase2(members: list[dict[str, Any]], pooled_points: list[dict[str, 
                     continue
                 if form_filt == FORM_10K and bucket != FORM_10K:
                     continue
-                if p.get("sentiment") is None or p.get(y_key) is None:
+                y = p.get(y_capped)
+                if y is None:
+                    y = p.get(y_key)
+                if p.get("sentiment") is None or y is None:
                     continue
                 xs.append(float(p["sentiment"]))
-                ys.append(float(p[y_key]))
+                ys.append(float(y))
             filing_weighted = analyze_pairs(xs, ys, form_type=form_label, metric=metric)
             filing_agree = agreement_counts(xs, ys)
 

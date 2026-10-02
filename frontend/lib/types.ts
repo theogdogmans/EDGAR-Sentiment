@@ -22,7 +22,13 @@ export type ScatterPoint = {
   report_date?: string | null;
   sentiment: number | null;
   income_pct?: number | null;
+  /** Capped ratio used in correlations and on the scatter. Raw income_pct is unchanged. */
+  income_pct_winsor?: number | null;
   revenue_pct?: number | null;
+  revenue_pct_winsor?: number | null;
+  /** Dollar levels, when the payload includes them. Not used in correlations. */
+  income_current?: number | null;
+  income_prior?: number | null;
   /** chart alias: net income YoY as percent points */
   income?: number;
 };

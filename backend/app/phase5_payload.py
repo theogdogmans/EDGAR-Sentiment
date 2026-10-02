@@ -115,7 +115,11 @@ def _chart_points(c: dict[str, Any]) -> list[dict[str, Any]]:
                 "report_date": p.get("report_date"),
                 "sentiment": p.get("sentiment"),
                 "income_pct": p.get("income_pct"),
+                "income_pct_winsor": p.get("income_pct_winsor"),
                 "revenue_pct": p.get("revenue_pct"),
+                "revenue_pct_winsor": p.get("revenue_pct_winsor"),
+                "income_current": p.get("income_current"),
+                "income_prior": p.get("income_prior"),
             }
         )
     return _clean(out)
@@ -231,6 +235,7 @@ def build_company_payload_row(c: dict[str, Any], *, featured: bool = False) -> d
         "points": points,
         "featured": featured,
         "exclude_from_sector": bool(c.get("exclude_from_sector")),
+        "stats_phase2": c.get("stats_phase2"),
         # Legacy (deprecated) — populated from 10-Q NI primary, not pooled combined
         **legacy,
         "legacy_note": (
@@ -272,7 +277,9 @@ def build_sector_payload_row(s: dict[str, Any]) -> dict[str, Any]:
                 "filed": p.get("filed"),
                 "sentiment": p.get("sentiment"),
                 "income_pct": p.get("income_pct"),
+                "income_pct_winsor": p.get("income_pct_winsor"),
                 "revenue_pct": p.get("revenue_pct") if rev_available else None,
+                "revenue_pct_winsor": p.get("revenue_pct_winsor") if rev_available else None,
             }
         )
 
@@ -326,6 +333,7 @@ def build_sector_payload_row(s: dict[str, Any]) -> dict[str, Any]:
         "cb_pearson_r_10q_ni": ten_q_ni["company_balanced_pearson_r"],
         "cb_n_companies_10q_ni": ten_q_ni["company_balanced_n_companies"],
         "points": _clean(points),
+        "stats_phase2": s.get("stats_phase2"),
         # Legacy transitional: filing-weighted Pearson (not company-balanced)
         "r_income": ten_q_ni["filing_weighted_pearson_r"],
         "p_income": ten_q_ni["filing_weighted_pearson_p"],

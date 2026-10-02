@@ -5,7 +5,7 @@ import MethodologyLink from "@/components/MethodologyLink";
 import SentimentScatter from "@/components/SentimentScatter";
 import StrengthBar from "@/components/StrengthBar";
 import { loadSiteData } from "@/lib/data";
-import { observationsPhrase, relationshipFromRho } from "@/lib/explain";
+import { observationsPhrase, relationshipFromRho, scatterIncomePercents } from "@/lib/explain";
 import { fmtCount, fmtR, toneClass } from "@/lib/format";
 import { formIs10Q, isFdrSignificant, ni10q, sortCompanies } from "@/lib/phase5";
 import { findSectorBySlug, sectorSlug } from "@/lib/sector";
@@ -46,8 +46,10 @@ export default async function IndustryPage({
       form: p.form,
       filed: p.filed,
       sentiment: Number(p.sentiment),
-      income: Number((p.income_pct as number) * 100),
+      ...scatterIncomePercents(p),
       revenue: p.revenue_pct == null ? null : Number(p.revenue_pct) * 100,
+      incomeCurrent: p.income_current ?? null,
+      incomePrior: p.income_prior ?? null,
     }));
 
   return (
@@ -128,7 +130,8 @@ export default async function IndustryPage({
       <div className="panel soft chart-panel">
         <h2>Quarterly filings in this industry</h2>
         <p className="hint">
-          Each dot represents one 10-Q filing.{" "}
+          Each dot represents one 10-Q filing. Extreme percent changes are capped so one point does
+          not flatten the rest.{" "}
           <MethodologyLink topic="scatterplots">How to read this chart</MethodologyLink>
         </p>
         <SentimentScatter points={scatter} />

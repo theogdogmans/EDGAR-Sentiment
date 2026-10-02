@@ -11,6 +11,7 @@ import {
   observationsPhrase,
   relationshipFromRho,
   sampleSizeLabel,
+  scatterIncomePercents,
 } from "@/lib/explain";
 import {
   fmtCI,
@@ -59,8 +60,10 @@ export default async function CompanyPage({
       form: p.form,
       filed: p.filed,
       sentiment: Number(p.sentiment),
-      income: Number((p.income_pct as number) * 100),
+      ...scatterIncomePercents(p),
       revenue: p.revenue_pct == null ? null : Number(p.revenue_pct) * 100,
+      incomeCurrent: p.income_current ?? null,
+      incomePrior: p.income_prior ?? null,
     }));
 
   const points10q = (row.points ?? []).filter((p) => formIs10Q(p.form));
@@ -135,8 +138,9 @@ export default async function CompanyPage({
         <h2>Tone vs earnings change</h2>
         <p className="hint">
           Each dot represents one 10-Q filing. Points farther right have more positive MD&amp;A tone.
-          Points higher on the chart had stronger year-over-year net income growth. Upper-right and
-          lower-left points indicate tone and earnings moving in the same direction.{" "}
+          Points higher on the chart had stronger year-over-year net income growth, after extreme
+          percent changes are capped. Upper-right and lower-left points indicate tone and earnings
+          moving in the same direction.{" "}
           <MethodologyLink topic="scatterplots">How to read this chart</MethodologyLink>
         </p>
         <SentimentScatter points={scatter} />

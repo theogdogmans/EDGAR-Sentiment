@@ -57,6 +57,41 @@ export function strengthBarWidth(rho: number | null | undefined): number {
   return Math.min(1, Math.abs(rho));
 }
 
+/** Scatter tooltip only. Does not change stored YoY or any published statistic. */
+export function niYoyBaseEffectNote(
+  yoyRatio: number | null | undefined,
+  prior: number | null | undefined,
+  current: number | null | undefined
+): string | null {
+  const note =
+    "Percent change is unstable when last year's net income was near zero or a loss.";
+  if (prior != null && Number.isFinite(prior)) {
+    const nearZero =
+      Math.abs(prior) > 0 &&
+      Math.abs(prior) < 1_000_000 &&
+      ((current != null &&
+        Number.isFinite(current) &&
+        Math.abs(prior) < Math.max(1, 0.01 * Math.abs(current))) ||
+        (yoyRatio != null && Number.isFinite(yoyRatio) && Math.abs(yoyRatio) > 2));
+    if (prior < 0 || nearZero) return note;
+    return null;
+  }
+  if (yoyRatio != null && Number.isFinite(yoyRatio) && Math.abs(yoyRatio) > 5) return note;
+  return null;
+}
+
+/** Scatter Y uses the capped ratio when the payload has one. Tables keep the raw ratio. */
+export function scatterIncomePercents(p: {
+  income_pct?: number | null;
+  income_pct_winsor?: number | null;
+}): { income: number; incomeRaw: number } {
+  const raw = Number(p.income_pct);
+  const capped = p.income_pct_winsor;
+  const plotted =
+    capped == null || !Number.isFinite(Number(capped)) ? raw : Number(capped);
+  return { income: plotted * 100, incomeRaw: raw * 100 };
+}
+
 export function agreementSentence(
   num: number | null | undefined,
   den: number | null | undefined

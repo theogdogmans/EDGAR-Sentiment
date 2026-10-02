@@ -22,7 +22,9 @@ from .stats_core import (
     NEUTRAL_YOY,
     agreement_counts,
     analyze_pairs,
+    clip_yoy,
     form_bucket,
+    pooled_winsor_bounds,
 )
 
 
@@ -142,10 +144,63 @@ def extract_metric_pairs(
     return xs, ys
 
 
-def summarize_phase2(filings: list[dict[str, Any]]) -> dict[str, Any]:
+YoyBounds = dict[tuple[str, str], tuple[float, float]]
+
+
+def _metric_yoy(filing: dict[str, Any], metric_key: str) -> Optional[float]:
+    metrics = filing.get("metrics") or {}
+    if metric_key == "net_income":
+        y = (metrics.get("net_income") or {}).get("pct_change")
+        if y is None:
+            y = filing.get("income_pct")
+    else:
+        y = (metrics.get("revenue") or {}).get("pct_change")
+        if y is None:
+            y = filing.get("revenue_pct")
+    return None if y is None else float(y)
+
+
+def accumulate_pooled_yoy(filings: list[dict[str, Any]], pools: dict[tuple[str, str], list[float]]) -> None:
+    """Add raw YoY ratios that would enter a correlation. Does not clip."""
+    for filing in filings:
+        form = form_bucket(filing.get("form"))
+        if form not in (FORM_10Q, FORM_10K):
+            continue
+        if _sentiment_score(filing) is None:
+            continue
+        for metric in ("net_income", "revenue"):
+            y = _metric_yoy(filing, metric)
+            if y is None:
+                continue
+            pools.setdefault((form, metric), []).append(y)
+            pools.setdefault((FORM_COMBINED, metric), []).append(y)
+
+
+def compute_pooled_yoy_bounds(pools: dict[tuple[str, str], list[float]]) -> YoyBounds:
+    """1st/99th percentile of each form × metric pool. Raw lists are not modified."""
+    bounds: YoyBounds = {}
+    for key, values in pools.items():
+        cap = pooled_winsor_bounds(values)
+        if cap is not None:
+            bounds[key] = cap
+    return bounds
+
+
+def _clip_series(ys: list[float], bounds: Optional[YoyBounds], form: str, metric: str) -> list[float]:
+    if not bounds:
+        return ys
+    cap = bounds.get((form, metric))
+    return [clip_yoy(y, cap) for y in ys]
+
+
+def summarize_phase2(
+    filings: list[dict[str, Any]],
+    yoy_bounds: Optional[YoyBounds] = None,
+) -> dict[str, Any]:
     """Form-separated contemporaneous associations (Phase 2).
 
-    Raw filing observations are never modified.
+    Raw filing observations are never modified. When yoy_bounds is set, Spearman,
+    Pearson, agreement, and the within-group winsor check use the capped ratios.
     Combined (pooled) results are labeled exploratory only.
     """
     scopes = (
@@ -157,6 +212,8 @@ def summarize_phase2(filings: list[dict[str, Any]]) -> dict[str, Any]:
     for label, filt in scopes:
         income_x, income_y = extract_metric_pairs(filings, "net_income", form_filter=filt)
         rev_x, rev_y = extract_metric_pairs(filings, "revenue", form_filter=filt)
+        income_y = _clip_series(income_y, yoy_bounds, label, "net_income")
+        rev_y = _clip_series(rev_y, yoy_bounds, label, "revenue")
         by_form[label] = {
             "form_type": label,
             "exploratory": label == FORM_COMBINED,
@@ -167,6 +224,7 @@ def summarize_phase2(filings: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "association_kind": "contemporaneous_same_filing",
         "min_n_correlation": MIN_N_CORRELATION,
+        "yoy_winsor": "pooled_p1_p99" if yoy_bounds else None,
         "analyzed_count": sum(1 for f in filings if _sentiment_score(f) is not None),
         "by_form": by_form,
         "primary": {

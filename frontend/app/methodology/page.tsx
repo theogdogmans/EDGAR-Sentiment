@@ -170,14 +170,23 @@ export default async function MethodologyPage() {
           <p>
             For each filing we look up how net income (and, where comparable, revenue) changed
             versus the same quarter one year earlier. That year-over-year change is what we compare
-            to tone.
+            to tone. Before the correlations are calculated, each change is capped at the 1st and
+            99th percentile of all filings of that form for that metric. Every filing stays in the
+            sample. The filing table still shows the uncapped percent. The scatter plots the capped
+            percent so one extreme ratio does not flatten the other points.
           </p>
         }
         technical={
           <p>
             Primary metric: 10-Q net income YoY. Secondary: 10-Q revenue (where comparable) and
             10-K net income. Financials and Real Estate revenue comparisons are not used due to
-            cross-company concept differences.
+            cross-company concept differences. The cap is the pooled 1st and 99th percentile,
+            computed separately for 10-Q and 10-K, and for net income and revenue. Spearman,
+            Pearson, agreement, sector filing-weighted and company-balanced results, and the
+            multiple-testing adjustment all use the capped ratios. Spearman often stays the same,
+            because a point that was already the most extreme usually keeps its rank. The cap does
+            not fix a negative percent when the prior year was a loss. After the quarterly
+            net-income cap, the chart axis can still run to roughly those percentiles.
           </p>
         }
       />
@@ -433,15 +442,16 @@ export default async function MethodologyPage() {
           <ul className="prose-list">
             <li>Each dot represents one 10-Q filing</li>
             <li>Left–right (x): MD&amp;A tone (more negative ← → more positive)</li>
-            <li>Up–down (y): year-over-year financial change</li>
+            <li>Up–down (y): year-over-year financial change, after the pooled cap</li>
             <li>Upper-right: more positive language with improving earnings</li>
             <li>Lower-left: more negative language with worsening earnings</li>
           </ul>
         }
         technical={
           <p>
-            Primary company charts use 10-Q points only. Sector charts pool 10-Q filings for the
-            industry.
+            Primary company charts use 10-Q points only. The vertical position is the capped
+            year-over-year ratio. Hover shows the uncapped percent. Sector charts pool 10-Q filings
+            for the industry.
           </p>
         }
       />
@@ -452,6 +462,10 @@ export default async function MethodologyPage() {
         plain={
           <ul className="prose-list">
             <li>Near-zero prior earnings and loss↔profit flips can inflate Pearson</li>
+            <li>
+              Capping extreme percent changes limits how far one point stretches the chart. It does
+              not correct a misleading sign when the prior year was a loss.
+            </li>
             <li>MD&amp;A extraction quality varies by filing layout</li>
             <li>Model averages are not a human reading of emphasis or risk language</li>
             <li>Sector filing-weighted vs company-balanced results can differ</li>

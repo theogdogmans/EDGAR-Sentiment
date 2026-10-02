@@ -163,6 +163,36 @@ def spearman_association(xs: Sequence[float], ys: Sequence[float]) -> dict[str, 
     }
 
 
+def pooled_winsor_bounds(
+    values: Sequence[float],
+    *,
+    lower_pct: float = 1.0,
+    upper_pct: float = 99.0,
+) -> Optional[tuple[float, float]]:
+    """Pooled percentile cap. Returns None when the pool is too small to define one."""
+    if len(values) < 2:
+        return None
+    arr = np.asarray(list(values), dtype=float)
+    lo = float(np.percentile(arr, lower_pct))
+    hi = float(np.percentile(arr, upper_pct))
+    if hi < lo:
+        lo, hi = hi, lo
+    return lo, hi
+
+
+def clip_yoy(value: float, bounds: Optional[tuple[float, float]]) -> float:
+    """Clip one YoY ratio. Does not interpret the sign."""
+    y = float(value)
+    if bounds is None:
+        return y
+    lo, hi = bounds
+    if y < lo:
+        return float(lo)
+    if y > hi:
+        return float(hi)
+    return y
+
+
 def winsorize_values(values: Sequence[float], lower_pct: float = 1.0, upper_pct: float = 99.0) -> list[float]:
     """Return a new list; does not mutate the input sequence."""
     arr = np.asarray(list(values), dtype=float)

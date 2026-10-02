@@ -10,6 +10,7 @@ import {
   agreementSentence,
   observationsPhrase,
   relationshipFromRho,
+  scatterIncomePercents,
 } from "@/lib/explain";
 import { fmtCount, fmtR } from "@/lib/format";
 import {
@@ -74,7 +75,7 @@ function FeaturedCaseGrid({ companies }: { companies: CompanyStat[] }) {
             .filter((p) => formIs10Q(p.form) && p.sentiment != null && p.income_pct != null)
             .map((p) => ({
               sentiment: Number(p.sentiment),
-              income: Number(p.income_pct) * 100,
+              ...scatterIncomePercents(p),
             }));
           const agree = agreementSentence(ni.agree_num, ni.agree_den);
           return (

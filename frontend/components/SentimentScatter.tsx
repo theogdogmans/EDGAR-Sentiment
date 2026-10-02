@@ -11,15 +11,21 @@ import {
   YAxis,
   ZAxis,
 } from "recharts";
-import { fmtFilingDate, fmtPct, fmtScore } from "@/lib/format";
+import { niYoyBaseEffectNote } from "@/lib/explain";
+import { fmtFilingDate, fmtMoney, fmtPct, fmtScore } from "@/lib/format";
 
 type Point = {
   form?: string | null;
   filed?: string | null;
   ticker?: string;
   sentiment: number;
+  /** Plotted net income YoY in percentage points (capped ratio × 100 when a cap exists). */
   income: number;
+  /** Uncapped net income YoY in percentage points. */
+  incomeRaw?: number | null;
   revenue?: number | null;
+  incomeCurrent?: number | null;
+  incomePrior?: number | null;
 };
 
 export default function SentimentScatter({ points }: { points: Point[] }) {
@@ -65,6 +71,10 @@ export default function SentimentScatter({ points }: { points: Point[] }) {
               content={({ payload }) => {
                 const p = payload?.[0]?.payload as Point | undefined;
                 if (!p) return null;
+                const rawPct = p.incomeRaw ?? p.income;
+                const yoyRatio = rawPct / 100;
+                const note = niYoyBaseEffectNote(yoyRatio, p.incomePrior, p.incomeCurrent);
+                const capped = Math.abs(rawPct - p.income) > 0.05;
                 return (
                   <div className="chart-tooltip">
                     {p.ticker ? <div className="tip-strong">{p.ticker}</div> : null}
@@ -72,8 +82,20 @@ export default function SentimentScatter({ points }: { points: Point[] }) {
                       {p.form} · {fmtFilingDate(p.filed)}
                     </div>
                     <div>Tone {fmtScore(p.sentiment)}</div>
-                    <div>Net income YoY {p.income.toFixed(1)}%</div>
+                    <div>Net income YoY {rawPct.toFixed(1)}%</div>
+                    {capped ? (
+                      <div className="muted">
+                        Chart position uses {p.income.toFixed(1)}%, the pooled cap for this form.
+                      </div>
+                    ) : null}
+                    {p.incomePrior != null ? (
+                      <div>Prior net income {fmtMoney(p.incomePrior)}</div>
+                    ) : null}
+                    {p.incomeCurrent != null ? (
+                      <div>Current net income {fmtMoney(p.incomeCurrent)}</div>
+                    ) : null}
                     {p.revenue != null ? <div>Revenue YoY {fmtPct(p.revenue / 100)}</div> : null}
+                    {note ? <div className="muted">{note}</div> : null}
                   </div>
                 );
               }}

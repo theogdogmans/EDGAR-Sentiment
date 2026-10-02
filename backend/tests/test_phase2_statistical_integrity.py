@@ -210,6 +210,41 @@ def test_winsorize_helper_is_pure():
     assert max(out) < 100.0
 
 
+def test_pooled_yoy_cap_keeps_filings_and_raw_ratio():
+    from app.compare.stats_core import clip_yoy, pooled_winsor_bounds
+
+    raw = [0.1, -0.2, 0.3, 4.0]
+    bounds = pooled_winsor_bounds(raw, lower_pct=1, upper_pct=99)
+    assert bounds is not None
+    assert clip_yoy(500.0, bounds) == bounds[1]
+    assert clip_yoy(-500.0, bounds) == bounds[0]
+    assert raw == [0.1, -0.2, 0.3, 4.0]
+
+    points = [
+        {"form": "10-Q", "sentiment": i / 30, "income_pct": i / 100, "accession": str(i)}
+        for i in range(30)
+    ]
+    points.append({"form": "10-Q", "sentiment": 0.2, "income_pct": 500.0, "accession": "extreme"})
+    companies = build_company_stats_from_cloud_rows(
+        [{"ticker": "ZZZ", "name": "Z", "sector": "Tech", "points": points}]
+    )
+    row = companies[0]
+    stored = {p["accession"]: p for p in row["points"]}
+    assert stored["extreme"]["income_pct"] == 500.0
+    assert stored["extreme"]["income_pct_winsor"] < 500.0
+    assert len(row["points"]) == 31
+    ni = row["stats_phase2"]["by_form"]["10-Q"]["net_income"]
+    assert ni["n"] == 31
+    # The extreme point stays the highest after the cap, so ranks (and Spearman) do not move.
+    raw_phase = summarize_phase2(points)
+    capped_rho = ni["spearman"]["rho"]
+    raw_rho = raw_phase["by_form"]["10-Q"]["net_income"]["spearman"]["rho"]
+    assert capped_rho == raw_rho
+    capped_r = ni["raw_pearson"]["r"]
+    raw_r = raw_phase["by_form"]["10-Q"]["net_income"]["raw_pearson"]["r"]
+    assert capped_r != raw_r
+
+
 def test_extract_pairs_from_compact_points():
     points = [
         {"form": "10-Q", "sentiment": 0.1, "income_pct": 0.2},
